@@ -46,15 +46,43 @@ function escape($value) {
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+// Función para obtener datos desde la base de datos
+function getDataFromDatabase($conn) {
+    $sql = "SELECT * FROM data1";
+    $result = $conn->query($sql);
+
+    $datos = [];
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $datos[] = $row;
+        }
+    }
+    return $datos;
+}
+
+// Función para obtener eventos desde la base de datos
+function getEventsFromDatabase($conn) {
+    $sql = "SELECT * FROM employee_events";
+    $result = $conn->query($sql);
+
+    $events = [];
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $events[] = $row;
+        }
+    }
+    return $events;
+}
+
 // Función para generar la matriz de asistencia
-function generateAttendanceMatrix($datos) {
+function generateAttendanceMatrix($datos, $events) {
     $attendance = [];
     $dates = [];
     $months = [];
 
     foreach ($datos as $fila) {
-        $employee = $fila['nombre_concatenado']; // Nombre Concatenado
-        $rut = $fila['documento']; // Documento Identificador
+        $employee = $fila['nombre']; // Nombre Concatenado
+        $rut = $fila['identificador']; // Documento Identificador
         $program = $fila['contrato']; // Contrato
         $entryDate = formatExcelDate($fila['fecha_entrada']); // Fecha Entrada
         $exitDate = isset($fila['fecha_salida']) ? formatExcelDate($fila['fecha_salida']) : null; // Fecha Salida
@@ -76,7 +104,8 @@ function generateAttendanceMatrix($datos) {
                 $attendance[$employee]['days'][$currentDate] = [
                     'entry' => $currentDate === $entryDateOnly ? $entryDate : null,
                     'exit' => $currentDate === $exitDateOnly ? $exitDate : null,
-                    'noExit' => $exitDate === null
+                    'noExit' => $exitDate === null,
+                    'event' => null
                 ];
                 $dates[$currentDate] = true;
                 $months[getMonthName($currentDate)][] = $currentDate;
@@ -86,27 +115,49 @@ function generateAttendanceMatrix($datos) {
         }
     }
 
+    foreach ($events as $event) {
+        $employee = $event['nombre'];
+        $date = $event['fecha'];
+        $eventType = $event['event_type'];
+
+        if (isset($attendance[$employee]) && isset($attendance[$employee]['days'][$date])) {
+            $attendance[$employee]['days'][$date]['event'] = $eventType;
+        }
+    }
+
     ksort($dates);
     ksort($attendance); // Ordenar por nombre del funcionario
     return [$attendance, array_keys($dates), $months];
 }
 
-// Función para obtener datos desde la base de datos
-function getDataFromDatabase($conn) {
-    $sql = "SELECT * FROM data1";
-    $result = $conn->query($sql);
+// Función para guardar evento en la base de datos
+function saveEvent($conn, $identificador, $nombre, $fecha, $event_type) {
+    $stmt = $conn->prepare("INSERT INTO employee_events (identificador, nombre, fecha, event_type) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssss", $identificador, $nombre, $fecha, $event_type);
+    $stmt->execute();
+    $stmt->close();
+}
 
-    $datos = [];
-    if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $datos[] = $row;
-        }
-    }
-    return $datos;
+// Función para obtener el color asociado a un tipo de evento
+function getEventColor($event_type) {
+    $colors = [
+        "Ni idea que pasa" => "#FF0000",
+        "Cambio de turno" => "#FFA500",
+        "Licencia medica" => "#FFFF00",
+        "Trabajador con asistencia en Talana" => "#008000",
+        "Trabajador con asistencia en Planificación" => "#0000FF",
+        "Permiso con o sin goce o falla" => "#4B0082",
+        "Teletrabajo" => "#EE82EE",
+        "Vacaciones, nacimiento, sindical" => "#A52A2A",
+        "Finiquito" => "#000000",
+        "Cambio Faena" => "#808080"
+    ];
+    return $colors[$event_type] ?? "#FFFFFF";
 }
 
 $datos = getDataFromDatabase($conn);
-list($attendance, $dates, $months) = generateAttendanceMatrix($datos);
+$events = getEventsFromDatabase($conn);
+list($attendance, $dates, $months) = generateAttendanceMatrix($datos, $events);
 
 $conn->close();
 ?>
@@ -148,6 +199,60 @@ $conn->close();
             text-align: right;
             margin-bottom: 20px;
         }
+        .modal-content {
+            padding: 20px;
+        }
+        .event-color {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            margin-right: 5px;
+        }
+        .event-option {
+            display: flex;
+            align-items: center;
+        }
+        .legend {
+            margin-bottom: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        select option {
+            color: black;
+        }
+        select option[value="Ni idea que pasa"] {
+            color: #FF0000;
+        }
+        select option[value="Cambio de turno"] {
+            color: #FFA500;
+        }
+        select option[value="Licencia medica"] {
+            color: #FFFF00;
+        }
+        select option[value="Trabajador con asistencia en Talana"] {
+            color: #008000;
+        }
+        select option[value="Trabajador con asistencia en Planificación"] {
+            color: #0000FF;
+        }
+        select option[value="Permiso con o sin goce o falla"] {
+            color: #4B0082;
+        }
+        select option[value="Teletrabajo"] {
+            color: #EE82EE;
+        }
+        select option[value="Vacaciones, nacimiento, sindical"] {
+            color: #A52A2A;
+        }
+        select option[value="Finiquito"] {
+            color: #000000;
+        }
+        select option[value="Cambio Faena"] {
+            color: #808080;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -158,11 +263,43 @@ $conn->close();
             button.textContent = button.textContent === 'Ver más' ? 'Ver menos' : 'Ver más';
         }
 
+        function showModal(employee, date, rut) {
+            document.getElementById('modalEmployee').textContent = employee;
+            document.getElementById('modalDate').textContent = date;
+            document.getElementById('modalRut').textContent = rut;
+            var modal = new bootstrap.Modal(document.getElementById('infoModal'));
+            modal.show();
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl)
             })
+
+            document.querySelectorAll('.attendance-cell').forEach(cell => {
+                cell.addEventListener('click', function() {
+                    showModal(this.dataset.employee, this.dataset.date, this.dataset.rut);
+                });
+            });
+
+            document.getElementById('saveButton').addEventListener('click', function() {
+                var employee = document.getElementById('modalEmployee').textContent;
+                var date = document.getElementById('modalDate').textContent;
+                var rut = document.getElementById('modalRut').textContent;
+                var eventType = document.getElementById('statusSelect').value;
+
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "save_event.php", true);
+                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        alert("Evento guardado exitosamente");
+                        location.reload();
+                    }
+                };
+                xhr.send("employee=" + encodeURIComponent(employee) + "&date=" + encodeURIComponent(date) + "&rut=" + encodeURIComponent(rut) + "&event_type=" + encodeURIComponent(eventType));
+            });
         });
     </script>
 </head>
@@ -179,6 +316,19 @@ $conn->close();
                     </form>
                 </div>
                 
+                <div class="legend">
+                    <div class="legend-item"><span class="event-color" style="background-color: #FF0000;"></span>Ni idea que pasa</div>
+                    <div class="legend-item"><span class="event-color" style="background-color: #FFA500;"></span>Cambio de turno</div>
+                    <div class="legend-item"><span class="event-color" style="background-color: #FFFF00;"></span>Licencia medica</div>
+                    <div class="legend-item"><span class="event-color" style="background-color: #008000;"></span>Trabajador con asistencia en Talana</div>
+                    <div class="legend-item"><span class="event-color" style="background-color: #0000FF;"></span>Trabajador con asistencia en Planificación</div>
+                    <div class="legend-item"><span class="event-color" style="background-color: #4B0082;"></span>Permiso con o sin goce o falla</div>
+                    <div class="legend-item"><span class="event-color" style="background-color: #EE82EE;"></span>Teletrabajo</div>
+                    <div class="legend-item"><span class="event-color" style="background-color: #A52A2A;"></span>Vacaciones, nacimiento, sindical</div>
+                    <div class="legend-item"><span class="event-color" style="background-color: #000000;"></span>Finiquito</div>
+                    <div class="legend-item"><span class="event-color" style="background-color: #808080;"></span>Cambio Faena</div>
+                </div>
+
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
                         <thead class="table-primary">
@@ -206,7 +356,11 @@ $conn->close();
                                     <td><?php echo escape($info['rut']); ?></td>
                                     <td><?php echo escape($info['program']); ?></td>
                                     <?php foreach ($dates as $date): ?>
-                                        <td class="<?php echo isset($info['days'][$date]) && $info['days'][$date]['noExit'] ? 'no-exit' : ''; ?>">
+                                        <?php
+                                            $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event']) : '';
+                                            $noExitClass = isset($info['days'][$date]) && $info['days'][$date]['noExit'] ? 'no-exit' : '';
+                                        ?>
+                                        <td class="attendance-cell <?php echo $noExitClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" style="background-color: <?php echo $eventColor; ?>;">
                                             <?php if (isset($info['days'][$date])): ?>
                                                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="Entrada: <?php echo escape($info['days'][$date]['entry']); ?><?php if ($info['days'][$date]['exit']): ?>&#10;Salida: <?php echo escape($info['days'][$date]['exit']); ?><?php endif; ?>">X</span>
                                             <?php endif; ?>
@@ -217,6 +371,42 @@ $conn->close();
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="infoModalLabel">Información del bloque</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Funcionario:</strong> <span id="modalEmployee"></span></p>
+                    <p><strong>RUT:</strong> <span id="modalRut"></span></p>
+                    <p><strong>Fecha:</strong> <span id="modalDate"></span></p>
+                    <div class="mb-3">
+                        <label for="statusSelect" class="form-label">Estado</label>
+                        <select class="form-select" id="statusSelect">
+                            <option value="Ni idea que pasa">Ni idea que pasa</option>
+                            <option value="Cambio de turno">Cambio de turno</option>
+                            <option value="Licencia medica">Licencia medica</option>
+                            <option value="Trabajador con asistencia en Talana">Trabajador con asistencia en Talana</option>
+                            <option value="Trabajador con asistencia en Planificación">Trabajador con asistencia en Planificación</option>
+                            <option value="Permiso con o sin goce o falla">Permiso con o sin goce o falla</option>
+                            <option value="Teletrabajo">Teletrabajo</option>
+                            <option value="Vacaciones, nacimiento, sindical">Vacaciones, nacimiento, sindical</option>
+                            <option value="Finiquito">Finiquito</option>
+                            <option value="Cambio Faena">Cambio Faena</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" id="saveButton">Guardar</button>
                 </div>
             </div>
         </div>

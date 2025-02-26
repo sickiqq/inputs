@@ -115,22 +115,22 @@ if (isset($_FILES['archivos']) && count($_FILES['archivos']['name']) > 0) {
                     // Subir datos a la base de datos
                     foreach ($filas as $fila) {
                         $contrato = $fila[0];
-                        list($documento, $identificador) = explode('-', $fila[1]);
-                        $nombre_concatenado = $fila[2];
+                        $identificador = $fila[1];
+                        $nombre = $fila[2];
                         $fecha_entrada = formatExcelDate($fila[3]);
                         $fecha_salida = isset($fila[4]) ? formatExcelDate($fila[4]) : null;
 
                         // Verificar si el registro ya existe
-                        $check_stmt = $conn->prepare("SELECT COUNT(*) FROM data1 WHERE contrato = ? AND documento = ? AND identificador = ?");
-                        $check_stmt->bind_param("sss", $contrato, $documento, $identificador);
+                        $check_stmt = $conn->prepare("SELECT COUNT(*) FROM data1 WHERE contrato = ? AND identificador = ?");
+                        $check_stmt->bind_param("ss", $contrato, $identificador);
                         $check_stmt->execute();
                         $check_stmt->bind_result($count);
                         $check_stmt->fetch();
                         $check_stmt->close();
 
                         if ($count == 0) {
-                            $stmt = $conn->prepare("INSERT INTO data1 (contrato, documento, identificador, nombre_concatenado, fecha_entrada, fecha_salida) VALUES (?, ?, ?, ?, ?, ?)");
-                            $stmt->bind_param("ssssss", $contrato, $documento, $identificador, $nombre_concatenado, $fecha_entrada, $fecha_salida);
+                            $stmt = $conn->prepare("INSERT INTO data1 (contrato, identificador, nombre, fecha_entrada, fecha_salida) VALUES (?, ?, ?, ?, ?)");
+                            $stmt->bind_param("sssss", $contrato, $identificador, $nombre, $fecha_entrada, $fecha_salida);
                             $stmt->execute();
                         }
                     }
