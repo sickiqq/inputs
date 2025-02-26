@@ -24,6 +24,7 @@ $error = '';
 $datos = [];
 $info_archivos = [];
 $initial_format = isset($_POST['initial_format']) ? json_decode($_POST['initial_format'], true) : null;
+$formato = isset($_POST['formato']) ? $_POST['formato'] : '1';
 
 // Función para formatear fechas de Excel
 function formatExcelDate($excelDate) {
@@ -32,6 +33,11 @@ function formatExcelDate($excelDate) {
         return gmdate("Y-m-d H:i:s", (int)$unixDate);
     }
     return $excelDate;
+}
+
+// Función para obtener solo la fecha de una fecha completa
+function getDateOnly($dateTime) {
+    return explode(' ', $dateTime)[0];
 }
 
 // Comprobar si se han enviado archivos
@@ -112,26 +118,83 @@ if (isset($_FILES['archivos']) && count($_FILES['archivos']['name']) > 0) {
                     ];
                     $info_archivos[] = $info_archivo;
 
-                    // Subir datos a la base de datos
-                    foreach ($filas as $fila) {
-                        $contrato = $fila[0];
-                        $identificador = $fila[1];
-                        $nombre = $fila[2];
-                        $fecha_entrada = formatExcelDate($fila[3]);
-                        $fecha_salida = isset($fila[4]) ? formatExcelDate($fila[4]) : null;
+                    if ($formato == '1') {
+                        // Subir datos a la base de datos
+                        foreach ($filas as $fila) {
+                            $contrato = $fila[0];
+                            $identificador = $fila[1];
+                            $nombre = $fila[2];
+                            $fecha_entrada = formatExcelDate($fila[3]);
+                            $fecha_salida = isset($fila[4]) ? formatExcelDate($fila[4]) : null;
 
-                        // Verificar si el registro ya existe
-                        $check_stmt = $conn->prepare("SELECT COUNT(*) FROM data1 WHERE contrato = ? AND identificador = ?");
-                        $check_stmt->bind_param("ss", $contrato, $identificador);
-                        $check_stmt->execute();
-                        $check_stmt->bind_result($count);
-                        $check_stmt->fetch();
-                        $check_stmt->close();
+                            // Verificar si el registro ya existe
+                            $check_stmt = $conn->prepare("SELECT COUNT(*) FROM data1 WHERE contrato = ? AND identificador = ?");
+                            $check_stmt->bind_param("ss", $contrato, $identificador);
+                            $check_stmt->execute();
+                            $check_stmt->bind_result($count);
+                            $check_stmt->fetch();
+                            $check_stmt->close();
 
-                        if ($count == 0) {
-                            $stmt = $conn->prepare("INSERT INTO data1 (contrato, identificador, nombre, fecha_entrada, fecha_salida) VALUES (?, ?, ?, ?, ?)");
-                            $stmt->bind_param("sssss", $contrato, $identificador, $nombre, $fecha_entrada, $fecha_salida);
-                            $stmt->execute();
+                            if ($count == 0) {
+                                $stmt = $conn->prepare("INSERT INTO data1 (contrato, identificador, nombre, fecha_entrada, fecha_salida) VALUES (?, ?, ?, ?, ?)");
+                                $stmt->bind_param("sssss", $contrato, $identificador, $nombre, $fecha_entrada, $fecha_salida);
+                                $stmt->execute();
+                            }
+                        }
+                    } elseif ($formato == '2') {
+                        // Process Formato 2
+                        $entries = [];
+                        foreach ($filas as $fila) {
+                            $fecha_hora = formatExcelDate($fila[0]);
+                            $nombre = $fila[1];
+                            $identificador = $fila[2];
+                            $tipo_accion = $fila[3];
+                            $ubicacion = $fila[4];
+                            $punto_control = $fila[5];
+                            $rut_empresa = $fila[6];
+                            $tipo_personal = $fila[7];
+                            $codigo_contrato = $fila[8];
+
+                            $fecha = getDateOnly($fecha_hora);
+
+                            if (!isset($entries[$identificador][$fecha])) {
+                                $entries[$identificador][$fecha] = [
+                                    'nombre' => $nombre,
+                                    'identificador' => $identificador,
+                                    'contrato' => $codigo_contrato,
+                                    'fecha_entrada' => null,
+                                    'fecha_salida' => null,
+                                    'tipo_accion' => $tipo_accion,
+                                    'ubicacion' => $ubicacion,
+                                    'punto_control' => $punto_control,
+                                    'rut_empresa' => $rut_empresa,
+                                    'tipo_personal' => $tipo_personal
+                                ];
+                            }
+
+                            if ($tipo_accion == 'Entrada') {
+                                $entries[$identificador][$fecha]['fecha_entrada'] = $fecha_hora;
+                            } elseif ($tipo_accion == 'Salida') {
+                                $entries[$identificador][$fecha]['fecha_salida'] = $fecha_hora;
+                            }
+                        }
+
+                        foreach ($entries as $identificador => $dates) {
+                            foreach ($dates as $date => $entry) {
+                                // Verificar si el registro ya existe
+                                $check_stmt = $conn->prepare("SELECT COUNT(*) FROM data2 WHERE identificador = ? AND contrato = ? AND fecha_entrada = ? AND fecha_salida = ?");
+                                $check_stmt->bind_param("ssss", $entry['identificador'], $entry['contrato'], $entry['fecha_entrada'], $entry['fecha_salida']);
+                                $check_stmt->execute();
+                                $check_stmt->bind_result($count);
+                                $check_stmt->fetch();
+                                $check_stmt->close();
+
+                                if ($count == 0) {
+                                    $stmt = $conn->prepare("INSERT INTO data2 (identificador, nombre, contrato, fecha_entrada, fecha_salida, tipo_accion, ubicacion, punto_control, rut_empresa, tipo_personal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                    $stmt->bind_param("ssssssssss", $entry['identificador'], $entry['nombre'], $entry['contrato'], $entry['fecha_entrada'], $entry['fecha_salida'], $entry['tipo_accion'], $entry['ubicacion'], $entry['punto_control'], $entry['rut_empresa'], $entry['tipo_personal']);
+                                    $stmt->execute();
+                                }
+                            }
                         }
                     }
                     

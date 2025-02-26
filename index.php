@@ -53,9 +53,18 @@ function escape($string) {
             </div>
             <div class="card-body">
                 <form action="cargar.php" method="post" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label for="archivo" class="form-label">Selecciona archivos Excel (.xlsx, .xls)</label>
-                        <input class="form-control" type="file" id="archivo" name="archivos[]" accept=".xlsx, .xls" multiple required>
+                    <div class="mb-3 row">
+                        <div class="col-md-6">
+                            <label for="formato" class="form-label">Selecciona el formato</label>
+                            <select class="form-control" id="formato" name="formato" required>
+                                <option value="1">Formato 1</option>
+                                <option value="2">Formato 2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="archivo" class="form-label">Selecciona archivos Excel (.xlsx, .xls)</label>
+                            <input class="form-control" type="file" id="archivo" name="archivos[]" accept=".xlsx, .xls" multiple required>
+                        </div>
                     </div>
                     <div class="alert alert-info">
                         <p><strong>Nota:</strong> Todos los archivos Excel deben tener el mismo formato:</p>
@@ -72,17 +81,80 @@ function escape($string) {
                 </form>
             </div>
         </div>
-        <div class="mt-4">
-            <h4>Meses y años de los registros:</h4>
-            <ul>
-                <?php if (isset($months) && !empty($months)): ?>
-                    <?php foreach (array_keys($months) as $monthYear): ?>
-                        <li><?php echo escape($monthYear); ?></li>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <li>No hay registros disponibles.</li>
-                <?php endif; ?>
-            </ul>
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h3>Visualizar información por rango de fechas</h3>
+            </div>
+            <div class="card-body">
+                <form action="visualizar.php" method="get">
+                    <div class="mb-3 row">
+                        <div class="col-md-4">
+                            <label for="formato" class="form-label">Selecciona el formato</label>
+                            <select class="form-control" id="formato" name="formato" required>
+                                <option value="1">Formato 1</option>
+                                <option value="2">Formato 2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="fecha_inicio" class="form-label">Fecha de inicio</label>
+                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="<?php echo date('Y-m-01'); ?>" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="fecha_termino" class="form-label">Fecha de término</label>
+                            <input type="date" class="form-control" id="fecha_termino" name="fecha_termino" value="<?php echo date('Y-m-t'); ?>" required>
+                        </div>
+                    </div>
+                    <div class="button-container">
+                        <button type="submit" class="btn btn-primary">Visualizar datos</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="mt-4 row">
+            <div class="col-md-6">
+                <h4>Registros (Formato 1):</h4>
+                <ul>
+                    <?php if (isset($months) && !empty($months)): ?>
+                        <?php foreach (array_keys($months) as $monthYear): ?>
+                            <li><?php echo escape($monthYear); ?></li>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <li>No hay registros disponibles.</li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h4>Registros (Formato 2):</h4>
+                <ul>
+                    <?php
+                    // Conectar a la base de datos nuevamente para obtener los registros de Formato 2
+                    $conn = new mysqli($servername, $username, $password, $dbname);
+                    if ($conn->connect_error) {
+                        die("Conexión fallida: " . $conn->connect_error);
+                    }
+
+                    $months2 = [];
+                    $sql2 = "SELECT DISTINCT DATE_FORMAT(fecha_entrada, '%M %Y') as monthYear FROM data2";
+                    $result2 = $conn->query($sql2);
+
+                    if ($result2->num_rows > 0) {
+                        while ($row2 = $result2->fetch_assoc()) {
+                            $months2[$row2['monthYear']] = true;
+                        }
+                    }
+
+                    $conn->close();
+                    ?>
+
+                    <?php if (isset($months2) && !empty($months2)): ?>
+                        <?php foreach (array_keys($months2) as $monthYear2): ?>
+                            <li><?php echo escape($monthYear2); ?></li>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <li>No hay registros disponibles.</li>
+                    <?php endif; ?>
+                </ul>
+            </div>
         </div>
     </div>
 </body>
