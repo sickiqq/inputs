@@ -56,7 +56,7 @@ function getEventColors($conn) {
 $eventColors = getEventColors($conn);
 
 // Función para generar la matriz de asistencia
-function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino) {
+function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino, $eventColors) {
     $attendance = [];
     $dates = [];
     $months = [];
@@ -173,7 +173,7 @@ if ($formato == '1') {
 }
 
 $events = getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino);
-list($attendance, $dates, $months, $unlinkedEvents) = generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino);
+list($attendance, $dates, $months, $unlinkedEvents) = generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino, $eventColors);
 
 $conn->close();
 
@@ -217,7 +217,7 @@ foreach ($attendance as $employee => $info) {
         $value = isset($info['days'][$date]) ? 'X' : '';
         $sheet->setCellValue($col . $row, $value);
         if ($eventColor || $unlinkedEventColor) {
-            $sheet->getStyle($col . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB($eventColor ?: $unlinkedEventColor);
+            $sheet->getStyle($col . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB(substr($eventColor ?: $unlinkedEventColor, 1));
         }
         $col++;
     }
