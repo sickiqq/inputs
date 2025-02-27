@@ -307,10 +307,11 @@ $conn->close();
             button.textContent = button.textContent === 'Ver más' ? 'Ver menos' : 'Ver más';
         }
 
-        function showModal(employee, date, rut) {
+        function showModal(employee, date, rut, eventType) {
             document.getElementById('modalEmployee').textContent = employee;
             document.getElementById('modalDate').textContent = date;
             document.getElementById('modalRut').textContent = rut;
+            document.getElementById('statusSelect').value = eventType || '';
             var modal = new bootstrap.Modal(document.getElementById('infoModal'));
             modal.show();
         }
@@ -323,7 +324,7 @@ $conn->close();
 
             document.querySelectorAll('.attendance-cell').forEach(cell => {
                 cell.addEventListener('click', function() {
-                    showModal(this.dataset.employee, this.dataset.date, this.dataset.rut);
+                    showModal(this.dataset.employee, this.dataset.date, this.dataset.rut, this.dataset.eventType);
                 });
             });
 
@@ -343,6 +344,23 @@ $conn->close();
                     }
                 };
                 xhr.send("employee=" + encodeURIComponent(employee) + "&date=" + encodeURIComponent(date) + "&rut=" + encodeURIComponent(rut) + "&event_type=" + encodeURIComponent(eventType));
+            });
+
+            document.getElementById('deleteButton').addEventListener('click', function() {
+                var employee = document.getElementById('modalEmployee').textContent;
+                var date = document.getElementById('modalDate').textContent;
+                var rut = document.getElementById('modalRut').textContent;
+
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "delete_event.php", true);
+                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        alert("Evento eliminado exitosamente");
+                        location.reload();
+                    }
+                };
+                xhr.send("employee=" + encodeURIComponent(employee) + "&date=" + encodeURIComponent(date) + "&rut=" + encodeURIComponent(rut));
             });
         });
     </script>
@@ -397,14 +415,12 @@ $conn->close();
                     </div>
                 </form>
 
-                <div class="col d-flex align-items-end">
-                    <form method="post" action="export_excel.php">
-                        <input type="hidden" name="fecha_inicio" value="<?php echo escape($fecha_inicio); ?>">
-                        <input type="hidden" name="fecha_termino" value="<?php echo escape($fecha_termino); ?>">
-                        <input type="hidden" name="formato" value="<?php echo escape($formato); ?>">
-                        <button type="submit" class="btn btn-success">Exportar a Excel</button>
-                    </form>
-                </div><br>
+                <form method="post" action="export_excel.php">
+                    <input type="hidden" name="fecha_inicio" value="<?php echo escape($fecha_inicio); ?>">
+                    <input type="hidden" name="fecha_termino" value="<?php echo escape($fecha_termino); ?>">
+                    <input type="hidden" name="formato" value="<?php echo escape($formato); ?>">
+                    <button type="submit" class="btn btn-success">Exportar a Excel</button>
+                </form><br>
 
 
                 <div class="table-responsive">
@@ -442,7 +458,7 @@ $conn->close();
                                             });
                                             $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type']) : '';
                                         ?>
-                                        <td class="attendance-cell <?php echo $noExitClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
+                                        <td class="attendance-cell <?php echo $noExitClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
                                             <?php if (isset($info['days'][$date])): ?>
                                                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="Entrada: <?php echo escape($info['days'][$date]['entry']); ?><?php if ($info['days'][$date]['exit']): ?>&#10;Salida: <?php echo escape($info['days'][$date]['exit']); ?><?php endif; ?>">X</span>
                                             <?php elseif (!empty($unlinkedEvent)): ?>
@@ -475,6 +491,7 @@ $conn->close();
                     <div class="mb-3">
                         <label for="statusSelect" class="form-label">Estado</label>
                         <select class="form-select" id="statusSelect">
+                            <option value="">Seleccionar estado</option>
                             <option value="Ni idea que pasa">Ni idea que pasa</option>
                             <option value="Cambio de turno">Cambio de turno</option>
                             <option value="Licencia medica">Licencia medica</option>
@@ -491,6 +508,7 @@ $conn->close();
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                     <button type="button" class="btn btn-primary" id="saveButton">Guardar</button>
+                    <button type="button" class="btn btn-danger" id="deleteButton">Eliminar</button>
                 </div>
             </div>
         </div>
