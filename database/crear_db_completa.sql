@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS data2 (
     contrato VARCHAR(50) NOT NULL,
     fecha_entrada DATETIME,
     fecha_salida DATETIME,
-    tipo_accion VARCHAR(50) NOT NULL,
     ubicacion VARCHAR(50) NOT NULL,
     punto_control VARCHAR(50),
     rut_empresa VARCHAR(20) NOT NULL,

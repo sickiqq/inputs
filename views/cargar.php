@@ -190,8 +190,8 @@ if (isset($_FILES['archivos']) && count($_FILES['archivos']['name']) > 0) {
                                 $check_stmt->close();
 
                                 if ($count == 0) {
-                                    $stmt = $conn->prepare("INSERT INTO data2 (identificador, nombre, contrato, fecha_entrada, fecha_salida, tipo_accion, ubicacion, punto_control, rut_empresa, tipo_personal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                                    $stmt->bind_param("ssssssssss", $entry['identificador'], $entry['nombre'], $entry['contrato'], $entry['fecha_entrada'], $entry['fecha_salida'], $entry['tipo_accion'], $entry['ubicacion'], $entry['punto_control'], $entry['rut_empresa'], $entry['tipo_personal']);
+                                    $stmt = $conn->prepare("INSERT INTO data2 (identificador, nombre, contrato, fecha_entrada, fecha_salida, ubicacion, punto_control, rut_empresa, tipo_personal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                    $stmt->bind_param("sssssssss", $entry['identificador'], $entry['nombre'], $entry['contrato'], $entry['fecha_entrada'], $entry['fecha_salida'], $entry['ubicacion'], $entry['punto_control'], $entry['rut_empresa'], $entry['tipo_personal']);
                                     $stmt->execute();
                                 }
                             }

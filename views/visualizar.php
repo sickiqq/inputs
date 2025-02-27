@@ -403,7 +403,7 @@ $conn->close();
                             <tr>
                                 <th rowspan="2" class="nowrap">Funcionario</th>
                                 <th rowspan="2" class="nowrap">RUT</th>
-                                <th rowspan="2" class="nowrap">Programa</th>
+                                <th rowspan="2" class="nowrap">Proyecto</th>
                                 <?php foreach ($months as $month => $monthDates): ?>
                                     <th colspan="<?php echo count($monthDates); ?>"><?php echo escape($month); ?></th>
                                 <?php endforeach; ?>

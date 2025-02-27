@@ -183,7 +183,7 @@ $sheet = $spreadsheet->getActiveSheet();
 // Set header
 $sheet->setCellValue('A1', 'Funcionario');
 $sheet->setCellValue('B1', 'RUT');
-$sheet->setCellValue('C1', 'Programa');
+$sheet->setCellValue('C1', 'Proyecto');
 
 $col = 'D';
 foreach ($dates as $date) {
