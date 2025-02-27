@@ -187,8 +187,16 @@ foreach ($dates as $date) {
     $col++;
 }
 
+// Add month row
+$sheet->setCellValue('A2', 'Mes');
+$col = 'D';
+foreach ($dates as $date) {
+    $sheet->setCellValue($col . '2', getMonthName($date));
+    $col++;
+}
+
 // Fill data
-$row = 2;
+$row = 3;
 foreach ($attendance as $employee => $info) {
     $sheet->setCellValue('A' . $row, $employee);
     $sheet->setCellValue('B' . $row, $info['rut']);
@@ -196,8 +204,17 @@ foreach ($attendance as $employee => $info) {
 
     $col = 'D';
     foreach ($dates as $date) {
+        $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event']) : '';
+        $unlinkedEvent = array_filter($unlinkedEvents, function($event) use ($employee, $date) {
+            return $event['nombre'] === $employee && getDateOnly($event['fecha']) === $date;
+        });
+        $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type']) : '';
+
         $value = isset($info['days'][$date]) ? 'X' : '';
         $sheet->setCellValue($col . $row, $value);
+        if ($eventColor || $unlinkedEventColor) {
+            $sheet->getStyle($col . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB($eventColor ?: $unlinkedEventColor);
+        }
         $col++;
     }
     $row++;
