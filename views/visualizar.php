@@ -288,8 +288,9 @@ $conn->close();
 
         function showModal(employee, date, rut, eventType) {
             document.getElementById('modalEmployee').textContent = employee;
-            document.getElementById('modalDate').textContent = date;
             document.getElementById('modalRut').textContent = rut;
+            document.getElementById('startDate').value = date;
+            document.getElementById('endDate').value = date;
             document.getElementById('statusSelect').value = eventType || '';
             var modal = new bootstrap.Modal(document.getElementById('infoModal'));
             modal.show();
@@ -309,7 +310,8 @@ $conn->close();
 
             document.getElementById('saveButton').addEventListener('click', function() {
                 var employee = document.getElementById('modalEmployee').textContent;
-                var date = document.getElementById('modalDate').textContent;
+                var startDate = document.getElementById('startDate').value;
+                var endDate = document.getElementById('endDate').value;
                 var rut = document.getElementById('modalRut').textContent;
                 var eventType = document.getElementById('statusSelect').value;
 
@@ -322,12 +324,12 @@ $conn->close();
                         location.reload();
                     }
                 };
-                xhr.send("employee=" + encodeURIComponent(employee) + "&date=" + encodeURIComponent(date) + "&rut=" + encodeURIComponent(rut) + "&event_type=" + encodeURIComponent(eventType));
+                xhr.send("employee=" + encodeURIComponent(employee) + "&start_date=" + encodeURIComponent(startDate) + "&end_date=" + encodeURIComponent(endDate) + "&rut=" + encodeURIComponent(rut) + "&event_type=" + encodeURIComponent(eventType));
             });
 
             document.getElementById('deleteButton').addEventListener('click', function() {
                 var employee = document.getElementById('modalEmployee').textContent;
-                var date = document.getElementById('modalDate').textContent;
+                var date = document.getElementById('startDate').value;
                 var rut = document.getElementById('modalRut').textContent;
 
                 var xhr = new XMLHttpRequest();
@@ -368,8 +370,8 @@ $conn->close();
                         <div class="col">
                             <label for="formato" class="form-label">Formato</label>
                             <select class="form-select" id="formato" name="formato">
-                                <option value="1" <?php echo $formato == '1' ? 'selected' : ''; ?>>Formato 1</option>
-                                <option value="2" <?php echo $formato == '2' ? 'selected' : ''; ?>>Formato 2</option>
+                                <option value="1" <?php echo $formato == '1' ? 'selected' : ''; ?>>Cordillera</option>
+                                <option value="2" <?php echo $formato == '2' ? 'selected' : ''; ?>>Patache</option>
                             </select>
                         </div>
                         <div class="col">
@@ -459,7 +461,14 @@ $conn->close();
                 <div class="modal-body">
                     <p><strong>Funcionario:</strong> <span id="modalEmployee"></span></p>
                     <p><strong>RUT:</strong> <span id="modalRut"></span></p>
-                    <p><strong>Fecha:</strong> <span id="modalDate"></span></p>
+                    <div class="mb-3">
+                        <label for="startDate" class="form-label">Fecha de Inicio</label>
+                        <input type="date" class="form-control" id="startDate">
+                    </div>
+                    <div class="mb-3">
+                        <label for="endDate" class="form-label">Fecha de Término</label>
+                        <input type="date" class="form-control" id="endDate">
+                    </div>
                     <div class="mb-3">
                         <label for="statusSelect" class="form-label">Estado</label>
                         <select class="form-select" id="statusSelect">
@@ -471,13 +480,80 @@ $conn->close();
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <!-- <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button> -->
                     <button type="button" class="btn btn-primary" id="saveButton">Guardar</button>
                     <button type="button" class="btn btn-danger" id="deleteButton">Eliminar</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        function toggleRows(index) {
+            var rows = document.querySelectorAll('.extra-row-' + index);
+            var button = document.getElementById('toggleButton-' + index);
+            rows.forEach(row => row.style.display = row.style.display === 'none' ? '' : 'none');
+            button.textContent = button.textContent === 'Ver más' ? 'Ver menos' : 'Ver más';
+        }
+
+        function showModal(employee, date, rut, eventType) {
+            document.getElementById('modalEmployee').textContent = employee;
+            document.getElementById('modalRut').textContent = rut;
+            document.getElementById('startDate').value = date;
+            document.getElementById('endDate').value = date;
+            document.getElementById('statusSelect').value = eventType || '';
+            var modal = new bootstrap.Modal(document.getElementById('infoModal'));
+            modal.show();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+
+            document.querySelectorAll('.attendance-cell').forEach(cell => {
+                cell.addEventListener('click', function() {
+                    showModal(this.dataset.employee, this.dataset.date, this.dataset.rut, this.dataset.eventType);
+                });
+            });
+
+            document.getElementById('saveButton').addEventListener('click', function() {
+                var employee = document.getElementById('modalEmployee').textContent;
+                var startDate = document.getElementById('startDate').value;
+                var endDate = document.getElementById('endDate').value;
+                var rut = document.getElementById('modalRut').textContent;
+                var eventType = document.getElementById('statusSelect').value;
+
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "save_event.php", true);
+                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        alert("Evento guardado exitosamente");
+                        location.reload();
+                    }
+                };
+                xhr.send("employee=" + encodeURIComponent(employee) + "&start_date=" + encodeURIComponent(startDate) + "&end_date=" + encodeURIComponent(endDate) + "&rut=" + encodeURIComponent(rut) + "&event_type=" + encodeURIComponent(eventType));
+            });
+
+            document.getElementById('deleteButton').addEventListener('click', function() {
+                var employee = document.getElementById('modalEmployee').textContent;
+                var date = document.getElementById('startDate').value;
+                var rut = document.getElementById('modalRut').textContent;
+
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "delete_event.php", true);
+                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        alert("Evento eliminado exitosamente");
+                        location.reload();
+                    }
+                };
+                xhr.send("employee=" + encodeURIComponent(employee) + "&date=" + encodeURIComponent(date) + "&rut=" + encodeURIComponent(rut));
+            });
+        });
+    </script>
 </body>
 </html>
 

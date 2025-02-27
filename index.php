@@ -57,8 +57,8 @@ function escape($string) {
                         <div class="col-md-6">
                             <label for="formato" class="form-label">Selecciona el formato</label>
                             <select class="form-control" id="formato" name="formato" required>
-                                <option value="1">Formato 1</option>
-                                <option value="2">Formato 2</option>
+                                <option value="1">Cordillera</option>
+                                <option value="2">Patache</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -87,8 +87,8 @@ function escape($string) {
                         <div class="col-md-4">
                             <label for="formato" class="form-label">Selecciona el formato</label>
                             <select class="form-control" id="formato" name="formato" required>
-                                <option value="1">Formato 1</option>
-                                <option value="2">Formato 2</option>
+                                <option value="1">Cordillera</option>
+                                <option value="2">Patache</option>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -113,7 +113,7 @@ function escape($string) {
         </div>
         <div class="mt-4 row">
             <div class="col-md-6">
-                <h4>Registros (Formato 1):</h4>
+                <h4>Registros (Cordillera):</h4>
                 <ul>
                     <?php if (isset($months) && !empty($months)): ?>
                         <?php foreach (array_keys($months) as $monthYear): ?>
@@ -125,10 +125,10 @@ function escape($string) {
                 </ul>
             </div>
             <div class="col-md-6">
-                <h4>Registros (Formato 2):</h4>
+                <h4>Registros (Patache):</h4>
                 <ul>
                     <?php
-                    // Conectar a la base de datos nuevamente para obtener los registros de Formato 2
+                    // Conectar a la base de datos nuevamente para obtener los registros de Patache
                     $conn = new mysqli($servername, $username, $password, $dbname);
                     if ($conn->connect_error) {
                         die("Conexión fallida: " . $conn->connect_error);

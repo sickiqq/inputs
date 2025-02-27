@@ -142,7 +142,7 @@ if (isset($_FILES['archivos']) && count($_FILES['archivos']['name']) > 0) {
                             }
                         }
                     } elseif ($formato == '2') {
-                        // Process Formato 2
+                        // Process Patache
                         $entries = [];
                         foreach ($filas as $fila) {
                             $fecha_hora = formatExcelDate($fila[0]);
