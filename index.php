@@ -106,6 +106,11 @@ function escape($string) {
                 </form>
             </div>
         </div>
+        <div class="card mt-4">
+            <div class="card-body">
+                <a href="views/event_types.php" class="btn btn-info">Gestionar Tipos de Eventos</a>
+            </div>
+        </div>
         <div class="mt-4 row">
             <div class="col-md-6">
                 <h4>Registros (Formato 1):</h4>
