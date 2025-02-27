@@ -46,20 +46,6 @@ function escape($value) {
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
 }
 
-// Función para obtener datos desde la base de datos
-function getDataFromDatabase($conn) {
-    $sql = "SELECT * FROM data1";
-    $result = $conn->query($sql);
-
-    $datos = [];
-    if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $datos[] = $row;
-        }
-    }
-    return $datos;
-}
-
 // Función para obtener eventos desde la base de datos
 function getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino) {
     $sql = "SELECT * FROM employee_events WHERE fecha BETWEEN ? AND ?";
@@ -79,10 +65,18 @@ function getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino) {
 }
 
 // Función para generar la matriz de asistencia
-function generateAttendanceMatrix($datos, $events) {
+function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino) {
     $attendance = [];
     $dates = [];
     $months = [];
+
+    // Generar todas las fechas en el rango
+    $currentDate = $fecha_inicio;
+    while ($currentDate <= $fecha_termino) {
+        $dates[$currentDate] = true;
+        $months[getMonthName($currentDate)][] = $currentDate;
+        $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
+    }
 
     foreach ($datos as $fila) {
         $employee = $fila['nombre']; // Nombre Concatenado
@@ -105,16 +99,16 @@ function generateAttendanceMatrix($datos, $events) {
         if ($entryDateOnly) {
             $currentDate = $entryDateOnly;
             while ($currentDate <= $exitDateOnly || ($exitDateOnly === null && $currentDate === $entryDateOnly)) {
-                $attendance[$employee]['days'][$currentDate] = [
-                    'entry' => $currentDate === $entryDateOnly ? $entryDate : null,
-                    'exit' => $currentDate === $exitDateOnly ? $exitDate : null,
-                    'noExit' => $exitDate === null,
-                    'event' => null,
-                    'eventColor' => ''
-                ];
-                $dates[$currentDate] = true;
-                $months[getMonthName($currentDate)][] = $currentDate;
-                $attendance[$employee]['countX']++;
+                if (isset($dates[$currentDate])) {
+                    $attendance[$employee]['days'][$currentDate] = [
+                        'entry' => $currentDate === $entryDateOnly ? $entryDate : null,
+                        'exit' => $currentDate === $exitDateOnly ? $exitDate : null,
+                        'noExit' => $exitDate === null,
+                        'event' => null,
+                        'eventColor' => ''
+                    ];
+                    $attendance[$employee]['countX']++;
+                }
                 $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
             }
         }
@@ -191,7 +185,7 @@ if ($formato == '1') {
 }
 
 $events = getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino);
-list($attendance, $dates, $months) = generateAttendanceMatrix($datos, $events);
+list($attendance, $dates, $months) = generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino);
 
 $conn->close();
 ?>
@@ -215,12 +209,22 @@ $conn->close();
             padding: 15px;
             margin-bottom: 20px;
         }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .table-responsive-top {
+            overflow-x: auto;
+            margin-bottom: 10px;
+        }
         .table thead th {
             vertical-align: bottom;
         }
         .table thead th .day-name {
             font-size: 0.8em;
             font-weight: normal;
+        }
+        .table tbody td {
+            font-size: 0.8em;
         }
         .tooltip-inner {
             max-width: 200px;
@@ -286,6 +290,9 @@ $conn->close();
         }
         select option[value="Cambio Faena"] {
             color: #808080;
+        }
+        .nowrap {
+            white-space: nowrap;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
@@ -387,13 +394,14 @@ $conn->close();
                     </div>
                 </form>
 
+
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
                         <thead class="table-primary">
                             <tr>
-                                <th rowspan="2">Funcionario</th>
-                                <th rowspan="2">RUT</th>
-                                <th rowspan="2">Programa</th>
+                                <th rowspan="2" class="nowrap">Funcionario</th>
+                                <th rowspan="2" class="nowrap">RUT</th>
+                                <th rowspan="2" class="nowrap">Programa</th>
                                 <?php foreach ($months as $month => $monthDates): ?>
                                     <th colspan="<?php echo count($monthDates); ?>"><?php echo escape($month); ?></th>
                                 <?php endforeach; ?>
@@ -410,9 +418,9 @@ $conn->close();
                         <tbody>
                             <?php foreach ($attendance as $employee => $info): ?>
                                 <tr>
-                                    <td><?php echo escape($employee); ?></td>
-                                    <td><?php echo escape($info['rut']); ?></td>
-                                    <td><?php echo escape($info['program']); ?></td>
+                                    <td class="nowrap"><?php echo escape($employee); ?></td>
+                                    <td class="nowrap"><?php echo escape($info['rut']); ?></td>
+                                    <td class="nowrap"><?php echo escape($info['program']); ?></td>
                                     <?php foreach ($dates as $date): ?>
                                         <?php
                                             $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event']) : '';
