@@ -397,6 +397,15 @@ $conn->close();
                     </div>
                 </form>
 
+                <div class="col d-flex align-items-end">
+                    <form method="post" action="export_excel.php">
+                        <input type="hidden" name="fecha_inicio" value="<?php echo escape($fecha_inicio); ?>">
+                        <input type="hidden" name="fecha_termino" value="<?php echo escape($fecha_termino); ?>">
+                        <input type="hidden" name="formato" value="<?php echo escape($formato); ?>">
+                        <button type="submit" class="btn btn-success">Exportar a Excel</button>
+                    </form>
+                </div><br>
+
 
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
