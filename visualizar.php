@@ -61,9 +61,12 @@ function getDataFromDatabase($conn) {
 }
 
 // Función para obtener eventos desde la base de datos
-function getEventsFromDatabase($conn) {
-    $sql = "SELECT * FROM employee_events";
-    $result = $conn->query($sql);
+function getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino) {
+    $sql = "SELECT * FROM employee_events WHERE fecha BETWEEN ? AND ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $fecha_inicio, $fecha_termino);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
     $events = [];
     if ($result->num_rows > 0) {
@@ -71,6 +74,7 @@ function getEventsFromDatabase($conn) {
             $events[] = $row;
         }
     }
+    $stmt->close();
     return $events;
 }
 
@@ -186,7 +190,7 @@ if ($formato == '1') {
     $stmt->close();
 }
 
-$events = getEventsFromDatabase($conn);
+$events = getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino);
 list($attendance, $dates, $months) = generateAttendanceMatrix($datos, $events);
 
 $conn->close();
@@ -341,11 +345,11 @@ $conn->close();
             </div>
             <div class="card-body">
                 <div class="button-container">
-                    <form method="post" action="cargar.php" style="display: inline;">
-                        <button type="submit" class="btn btn-primary">Cargar otro archivo</button>
+                    <form method="get" action="index.php" style="display: inline;">
+                        <button type="submit" class="btn btn-primary">Volver</button>
                     </form>
                 </div>
-                
+
                 <div class="legend">
                     <div class="legend-item"><span class="event-color" style="background-color: #FF0000;"></span>Ni idea que pasa</div>
                     <div class="legend-item"><span class="event-color" style="background-color: #FFA500;"></span>Cambio de turno</div>
@@ -358,6 +362,30 @@ $conn->close();
                     <div class="legend-item"><span class="event-color" style="background-color: #000000;"></span>Finiquito</div>
                     <div class="legend-item"><span class="event-color" style="background-color: #808080;"></span>Cambio Faena</div>
                 </div>
+
+                <form method="get" action="visualizar.php">
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label for="formato" class="form-label">Formato</label>
+                            <select class="form-select" id="formato" name="formato">
+                                <option value="1" <?php echo $formato == '1' ? 'selected' : ''; ?>>Formato 1</option>
+                                <option value="2" <?php echo $formato == '2' ? 'selected' : ''; ?>>Formato 2</option>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="<?php echo escape($fecha_inicio); ?>">
+                        </div>
+                        <div class="col">
+                            <label for="fecha_termino" class="form-label">Fecha Término</label>
+                            <input type="date" class="form-control" id="fecha_termino" name="fecha_termino" value="<?php echo escape($fecha_termino); ?>">
+                        </div>
+                        
+                        <div class="col d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">Buscar</button>
+                        </div>
+                    </div>
+                </form>
 
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
