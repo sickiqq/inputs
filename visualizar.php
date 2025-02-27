@@ -65,7 +65,7 @@ function getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino) {
 }
 
 // Función para generar la matriz de asistencia
-function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino) {
+function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino, $eventColors) {
     $attendance = [];
     $dates = [];
     $months = [];
@@ -122,7 +122,7 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
 
         if (isset($attendance[$employee]) && isset($attendance[$employee]['days'][$date])) {
             $attendance[$employee]['days'][$date]['event'] = $eventType;
-            $attendance[$employee]['days'][$date]['eventColor'] = getEventColor($eventType);
+            $attendance[$employee]['days'][$date]['eventColor'] = getEventColor($eventType, $eventColors);
         } else {
             $unlinkedEvents[] = $event;
         }
@@ -141,21 +141,25 @@ function saveEvent($conn, $identificador, $nombre, $fecha, $event_type) {
     $stmt->close();
 }
 
+// Función para obtener el color asociado a un tipo de evento desde la base de datos
+function getEventColors($conn) {
+    $colors = [];
+    $sql = "SELECT nombre, color_html FROM event_types";
+    $result = $conn->query($sql);
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $colors[$row['nombre']] = $row['color_html'];
+        }
+    }
+    return $colors;
+}
+
+// Obtener colores de eventos
+$eventColors = getEventColors($conn);
+
 // Función para obtener el color asociado a un tipo de evento
-function getEventColor($event_type) {
-    $colors = [
-        "Ni idea que pasa" => "#FF0000",
-        "Cambio de turno" => "#FFA500",
-        "Licencia medica" => "#FFFF00",
-        "Trabajador con asistencia en Talana" => "#008000",
-        "Trabajador con asistencia en Planificación" => "#0000FF",
-        "Permiso con o sin goce o falla" => "#4B0082",
-        "Teletrabajo" => "#EE82EE",
-        "Vacaciones, nacimiento, sindical" => "#A52A2A",
-        "Finiquito" => "#000000",
-        "Cambio Faena" => "#808080"
-    ];
-    return $colors[$event_type] ?? "#FFFFFF";
+function getEventColor($event_type, $eventColors) {
+    return $eventColors[$event_type] ?? "#FFFFFF";
 }
 
 $fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : date('Y-m-01');
@@ -188,7 +192,7 @@ if ($formato == '1') {
 }
 
 $events = getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino);
-list($attendance, $dates, $months, $unlinkedEvents) = generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino);
+list($attendance, $dates, $months, $unlinkedEvents) = generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino, $eventColors);
 
 $conn->close();
 ?>
@@ -264,36 +268,11 @@ $conn->close();
         select option {
             color: black;
         }
-        select option[value="Ni idea que pasa"] {
-            color: #FF0000;
+        <?php foreach ($eventColors as $eventName => $color): ?>
+        select option[value="<?php echo $eventName; ?>"] {
+            color: <?php echo $color; ?>;
         }
-        select option[value="Cambio de turno"] {
-            color: #FFA500;
-        }
-        select option[value="Licencia medica"] {
-            color: #FFFF00;
-        }
-        select option[value="Trabajador con asistencia en Talana"] {
-            color: #008000;
-        }
-        select option[value="Trabajador con asistencia en Planificación"] {
-            color: #0000FF;
-        }
-        select option[value="Permiso con o sin goce o falla"] {
-            color: #4B0082;
-        }
-        select option[value="Teletrabajo"] {
-            color: #EE82EE;
-        }
-        select option[value="Vacaciones, nacimiento, sindical"] {
-            color: #A52A2A;
-        }
-        select option[value="Finiquito"] {
-            color: #000000;
-        }
-        select option[value="Cambio Faena"] {
-            color: #808080;
-        }
+        <?php endforeach; ?>
         .nowrap {
             white-space: nowrap;
         }
@@ -379,16 +358,9 @@ $conn->close();
                 </div>
 
                 <div class="legend">
-                    <div class="legend-item"><span class="event-color" style="background-color: #FF0000;"></span>Ni idea que pasa</div>
-                    <div class="legend-item"><span class="event-color" style="background-color: #FFA500;"></span>Cambio de turno</div>
-                    <div class="legend-item"><span class="event-color" style="background-color: #FFFF00;"></span>Licencia medica</div>
-                    <div class="legend-item"><span class="event-color" style="background-color: #008000;"></span>Trabajador con asistencia en Talana</div>
-                    <div class="legend-item"><span class="event-color" style="background-color: #0000FF;"></span>Trabajador con asistencia en Planificación</div>
-                    <div class="legend-item"><span class="event-color" style="background-color: #4B0082;"></span>Permiso con o sin goce o falla</div>
-                    <div class="legend-item"><span class="event-color" style="background-color: #EE82EE;"></span>Teletrabajo</div>
-                    <div class="legend-item"><span class="event-color" style="background-color: #A52A2A;"></span>Vacaciones, nacimiento, sindical</div>
-                    <div class="legend-item"><span class="event-color" style="background-color: #000000;"></span>Finiquito</div>
-                    <div class="legend-item"><span class="event-color" style="background-color: #808080;"></span>Cambio Faena</div>
+                    <?php foreach ($eventColors as $eventName => $color): ?>
+                    <div class="legend-item"><span class="event-color" style="background-color: <?php echo $color; ?>;"></span><?php echo $eventName; ?></div>
+                    <?php endforeach; ?>
                 </div>
 
                 <form method="get" action="visualizar.php">
@@ -451,12 +423,12 @@ $conn->close();
                                     <td class="nowrap"><?php echo escape($info['program']); ?></td>
                                     <?php foreach ($dates as $date): ?>
                                         <?php
-                                            $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event']) : '';
+                                            $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event'], $eventColors) : '';
                                             $noExitClass = isset($info['days'][$date]) && $info['days'][$date]['noExit'] ? 'no-exit' : '';
                                             $unlinkedEvent = array_filter($unlinkedEvents, function($event) use ($employee, $date) {
                                                 return $event['nombre'] === $employee && getDateOnly($event['fecha']) === $date;
                                             });
-                                            $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type']) : '';
+                                            $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type'], $eventColors) : '';
                                         ?>
                                         <td class="attendance-cell <?php echo $noExitClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
                                             <?php if (isset($info['days'][$date])): ?>
@@ -492,21 +464,14 @@ $conn->close();
                         <label for="statusSelect" class="form-label">Estado</label>
                         <select class="form-select" id="statusSelect">
                             <option value="">Seleccionar estado</option>
-                            <option value="Ni idea que pasa">Ni idea que pasa</option>
-                            <option value="Cambio de turno">Cambio de turno</option>
-                            <option value="Licencia medica">Licencia medica</option>
-                            <option value="Trabajador con asistencia en Talana">Trabajador con asistencia en Talana</option>
-                            <option value="Trabajador con asistencia en Planificación">Trabajador con asistencia en Planificación</option>
-                            <option value="Permiso con o sin goce o falla">Permiso con o sin goce o falla</option>
-                            <option value="Teletrabajo">Teletrabajo</option>
-                            <option value="Vacaciones, nacimiento, sindical">Vacaciones, nacimiento, sindical</option>
-                            <option value="Finiquito">Finiquito</option>
-                            <option value="Cambio Faena">Cambio Faena</option>
+                            <?php foreach ($eventColors as $eventName => $color): ?>
+                            <option value="<?php echo $eventName; ?>"><?php echo $eventName; ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <!-- <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button> -->
                     <button type="button" class="btn btn-primary" id="saveButton">Guardar</button>
                     <button type="button" class="btn btn-danger" id="deleteButton">Eliminar</button>
                 </div>

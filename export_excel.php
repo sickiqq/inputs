@@ -39,6 +39,22 @@ function getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino) {
     return $events;
 }
 
+// Función para obtener el color asociado a un tipo de evento desde la base de datos
+function getEventColors($conn) {
+    $colors = [];
+    $sql = "SELECT nombre, color_html FROM event_types";
+    $result = $conn->query($sql);
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $colors[$row['nombre']] = $row['color_html'];
+        }
+    }
+    return $colors;
+}
+
+// Obtener colores de eventos
+$eventColors = getEventColors($conn);
+
 // Función para generar la matriz de asistencia
 function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino) {
     $attendance = [];
@@ -97,7 +113,7 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
 
         if (isset($attendance[$employee]) && isset($attendance[$employee]['days'][$date])) {
             $attendance[$employee]['days'][$date]['event'] = $eventType;
-            $attendance[$employee]['days'][$date]['eventColor'] = getEventColor($eventType);
+            $attendance[$employee]['days'][$date]['eventColor'] = getEventColor($eventType, $eventColors);
         } else {
             $unlinkedEvents[] = $event;
         }
@@ -128,20 +144,8 @@ function getMonthName($date) {
 }
 
 // Función para obtener el color asociado a un tipo de evento
-function getEventColor($event_type) {
-    $colors = [
-        "Ni idea que pasa" => "#FF0000",
-        "Cambio de turno" => "#FFA500",
-        "Licencia medica" => "#FFFF00",
-        "Trabajador con asistencia en Talana" => "#008000",
-        "Trabajador con asistencia en Planificación" => "#0000FF",
-        "Permiso con o sin goce o falla" => "#4B0082",
-        "Teletrabajo" => "#EE82EE",
-        "Vacaciones, nacimiento, sindical" => "#A52A2A",
-        "Finiquito" => "#000000",
-        "Cambio Faena" => "#808080"
-    ];
-    return $colors[$event_type] ?? "#FFFFFF";
+function getEventColor($event_type, $eventColors) {
+    return $eventColors[$event_type] ?? "#FFFFFF";
 }
 
 // Obtener datos según el formato
@@ -204,11 +208,11 @@ foreach ($attendance as $employee => $info) {
 
     $col = 'D';
     foreach ($dates as $date) {
-        $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event']) : '';
+        $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event'], $eventColors) : '';
         $unlinkedEvent = array_filter($unlinkedEvents, function($event) use ($employee, $date) {
             return $event['nombre'] === $employee && getDateOnly($event['fecha']) === $date;
         });
-        $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type']) : '';
+        $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type'], $eventColors) : '';
 
         $value = isset($info['days'][$date]) ? 'X' : '';
         $sheet->setCellValue($col . $row, $value);
