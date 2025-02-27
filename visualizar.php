@@ -69,6 +69,7 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
     $attendance = [];
     $dates = [];
     $months = [];
+    $unlinkedEvents = [];
 
     // Generar todas las fechas en el rango
     $currentDate = $fecha_inicio;
@@ -122,12 +123,14 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
         if (isset($attendance[$employee]) && isset($attendance[$employee]['days'][$date])) {
             $attendance[$employee]['days'][$date]['event'] = $eventType;
             $attendance[$employee]['days'][$date]['eventColor'] = getEventColor($eventType);
+        } else {
+            $unlinkedEvents[] = $event;
         }
     }
 
     ksort($dates);
     ksort($attendance); // Ordenar por nombre del funcionario
-    return [$attendance, array_keys($dates), $months];
+    return [$attendance, array_keys($dates), $months, $unlinkedEvents];
 }
 
 // Función para guardar evento en la base de datos
@@ -185,7 +188,7 @@ if ($formato == '1') {
 }
 
 $events = getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino);
-list($attendance, $dates, $months) = generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino);
+list($attendance, $dates, $months, $unlinkedEvents) = generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino);
 
 $conn->close();
 ?>
@@ -425,10 +428,16 @@ $conn->close();
                                         <?php
                                             $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event']) : '';
                                             $noExitClass = isset($info['days'][$date]) && $info['days'][$date]['noExit'] ? 'no-exit' : '';
+                                            $unlinkedEvent = array_filter($unlinkedEvents, function($event) use ($employee, $date) {
+                                                return $event['nombre'] === $employee && getDateOnly($event['fecha']) === $date;
+                                            });
+                                            $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type']) : '';
                                         ?>
-                                        <td class="attendance-cell <?php echo $noExitClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" style="background-color: <?php echo $eventColor; ?>;">
+                                        <td class="attendance-cell <?php echo $noExitClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
                                             <?php if (isset($info['days'][$date])): ?>
                                                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="Entrada: <?php echo escape($info['days'][$date]['entry']); ?><?php if ($info['days'][$date]['exit']): ?>&#10;Salida: <?php echo escape($info['days'][$date]['exit']); ?><?php endif; ?>">X</span>
+                                            <?php elseif (!empty($unlinkedEvent)): ?>
+                                                <span data-bs-toggle="tooltip" data-bs-placement="top" title="Evento: <?php echo escape(reset($unlinkedEvent)['event_type']); ?>"></span>
                                             <?php endif; ?>
                                         </td>
                                     <?php endforeach; ?>
