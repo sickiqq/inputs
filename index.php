@@ -76,15 +76,11 @@ function escape($string) {
                     <input type="hidden" id="initial_format" name="initial_format" value="">
                     <div class="button-container">
                         <button type="submit" class="btn btn-primary">Cargar datos</button>
-                        <a href="visualizar.php" class="btn btn-success">Visualizar información</a>
                     </div>
                 </form>
             </div>
         </div>
         <div class="card mt-4">
-            <div class="card-header bg-primary text-white">
-                <h3>Visualizar información por rango de fechas</h3>
-            </div>
             <div class="card-body">
                 <form action="visualizar.php" method="get">
                     <div class="mb-3 row">
@@ -105,7 +101,7 @@ function escape($string) {
                         </div>
                     </div>
                     <div class="button-container">
-                        <button type="submit" class="btn btn-primary">Visualizar datos</button>
+                        <button type="submit" class="btn btn-success">Visualizar datos</button>
                     </div>
                 </form>
             </div>

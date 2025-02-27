@@ -105,7 +105,8 @@ function generateAttendanceMatrix($datos, $events) {
                     'entry' => $currentDate === $entryDateOnly ? $entryDate : null,
                     'exit' => $currentDate === $exitDateOnly ? $exitDate : null,
                     'noExit' => $exitDate === null,
-                    'event' => null
+                    'event' => null,
+                    'eventColor' => ''
                 ];
                 $dates[$currentDate] = true;
                 $months[getMonthName($currentDate)][] = $currentDate;
@@ -117,11 +118,12 @@ function generateAttendanceMatrix($datos, $events) {
 
     foreach ($events as $event) {
         $employee = $event['nombre'];
-        $date = $event['fecha'];
+        $date = getDateOnly($event['fecha']); // Obtener solo la fecha sin la hora
         $eventType = $event['event_type'];
 
         if (isset($attendance[$employee]) && isset($attendance[$employee]['days'][$date])) {
             $attendance[$employee]['days'][$date]['event'] = $eventType;
+            $attendance[$employee]['days'][$date]['eventColor'] = getEventColor($eventType);
         }
     }
 
@@ -155,7 +157,35 @@ function getEventColor($event_type) {
     return $colors[$event_type] ?? "#FFFFFF";
 }
 
-$datos = getDataFromDatabase($conn);
+$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : date('Y-m-01');
+$fecha_termino = isset($_GET['fecha_termino']) ? $_GET['fecha_termino'] : date('Y-m-t');
+$formato = isset($_GET['formato']) ? $_GET['formato'] : '1';
+
+$datos = [];
+
+if ($formato == '1') {
+
+    $sql = "SELECT * FROM data1 WHERE fecha_entrada BETWEEN ? AND ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $fecha_inicio, $fecha_termino);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $datos[] = $row;
+    }
+    $stmt->close();
+} elseif ($formato == '2') {
+    $sql = "SELECT * FROM data2 WHERE fecha_entrada BETWEEN ? AND ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $fecha_inicio, $fecha_termino);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $datos[] = $row;
+    }
+    $stmt->close();
+}
+
 $events = getEventsFromDatabase($conn);
 list($attendance, $dates, $months) = generateAttendanceMatrix($datos, $events);
 
