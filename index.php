@@ -52,7 +52,7 @@ function escape($string) {
                 <h3>Carga tus archivos Excel</h3>
             </div>
             <div class="card-body">
-                <form action="cargar.php" method="post" enctype="multipart/form-data">
+                <form action="views/cargar.php" method="post" enctype="multipart/form-data">
                     <div class="mb-3 row">
                         <div class="col-md-6">
                             <label for="formato" class="form-label">Selecciona el formato</label>
@@ -82,7 +82,7 @@ function escape($string) {
         </div>
         <div class="card mt-4">
             <div class="card-body">
-                <form action="visualizar.php" method="get">
+                <form action="views/visualizar.php" method="get">
                     <div class="mb-3 row">
                         <div class="col-md-4">
                             <label for="formato" class="form-label">Selecciona el formato</label>

@@ -3,7 +3,7 @@
 ini_set('memory_limit', '1024M'); // Aumenta a 1GB
 
 // Cargar autoload de Composer
-require 'vendor/autoload.php';
+require '../vendor/autoload.php';
 
 // Conectar a la base de datos
 $servername = "localhost";
@@ -352,7 +352,7 @@ $conn->close();
             </div>
             <div class="card-body">
                 <div class="button-container">
-                    <form method="get" action="index.php" style="display: inline;">
+                    <form method="get" action="../index.php" style="display: inline;">
                         <button type="submit" class="btn btn-primary">Volver</button>
                     </form>
                 </div>

@@ -3,7 +3,7 @@
 ini_set('memory_limit', '1024M'); // Aumenta a 1GB
 
 // Cargar autoload de Composer
-require 'vendor/autoload.php';
+require '../vendor/autoload.php';
 
 // Conectar a la base de datos
 $servername = "localhost";
@@ -284,13 +284,13 @@ $conn->close();
                     <div class="alert alert-danger">
                         <?php echo $error; ?>
                         <p class="mt-2">
-                            <a href="index.php" class="btn btn-outline-primary">Volver a intentarlo</a>
+                            <a href="../index.php" class="btn btn-outline-primary">Volver a intentarlo</a>
                         </p>
                     </div>
                 <?php else: ?>
                     <div class="alert alert-success">
                         <p><strong>Archivos procesados y datos subidos correctamente.</strong></p>
-                        <a href="index.php" class="btn btn-info">Volver</a>
+                        <a href="../index.php" class="btn btn-info">Volver</a>
                     </div>
                 <?php endif; ?>
             </div>
