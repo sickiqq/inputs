@@ -464,6 +464,8 @@ $conn->close();
                 <div class="modal-body">
                     <p><strong>Funcionario:</strong> <span id="modalEmployee"></span></p>
                     <p><strong>RUT:</strong> <span id="modalRut"></span></p>
+                    <p><strong>Proyecto:</strong> <span id="modalProject"></span></p>
+                    <input type="hidden" id="modalProjectHidden">
                     <div class="mb-3">
                         <label for="startDate" class="form-label">Fecha de Inicio</label>
                         <input type="date" class="form-control" id="startDate">
@@ -506,6 +508,13 @@ $conn->close();
             document.getElementById('startDate').value = date;
             document.getElementById('endDate').value = date;
             document.getElementById('statusSelect').value = eventType || '';
+            
+            // Get the project value from the row
+            const row = document.querySelector(`td[data-employee="${employee}"]`).closest('tr');
+            const project = row.querySelector('.sticky-proyecto').textContent;
+            document.getElementById('modalProject').textContent = project;
+            document.getElementById('modalProjectHidden').value = project;
+            
             var modal = new bootstrap.Modal(document.getElementById('infoModal'));
             modal.show();
         }
@@ -568,7 +577,7 @@ $conn->close();
                     var data = {
                         identificador: rut,
                         nombre: employee,
-                        contrato: '', // Add appropriate value
+                        contrato: document.getElementById('modalProjectHidden').value, // Get the project value
                         fecha_entrada: startDate,
                         fecha_salida: endDate,
                         created_at: new Date().toISOString().slice(0, 19).replace('T', ' ') // Format created_at correctly
