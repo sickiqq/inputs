@@ -483,14 +483,19 @@ $conn->close();
                     <p><strong>RUT:</strong> <span id="modalRut"></span></p>
                     <p><strong>Proyecto:</strong> <span id="modalProject"></span></p>
                     <input type="hidden" id="modalProjectHidden">
-                    <div class="mb-3">
-                        <label for="startDate" class="form-label">Fecha de Inicio</label>
-                        <input type="date" class="form-control" id="startDate">
+                    
+                    <!-- Nueva estructura para fechas en la misma fila -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="startDate" class="form-label">Fecha de Inicio</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="endDate" class="form-label">Fecha de Término</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="endDate" class="form-label">Fecha de Término</label>
-                        <input type="date" class="form-control" id="endDate">
-                    </div>
+                    
                     <div class="mb-3">
                         <label for="statusSelect" class="form-label">Estado</label>
                         <select class="form-select" id="statusSelect">
@@ -502,7 +507,8 @@ $conn->close();
                         </select>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer justify-content-between">
+                    <!-- Botones alineados a izquierda y derecha -->
                     <button type="button" class="btn btn-primary" id="saveButton">Guardar</button>
                     <button type="button" class="btn btn-danger" id="deleteButton">Eliminar</button>
                 </div>
@@ -617,7 +623,7 @@ $conn->close();
                                 try {
                                     var response = JSON.parse(xhr.responseText);
                                     if (response.success) {
-                                        alert("Evento guardado exitosamente");
+                                        // alert("Evento guardado exitosamente");
                                         window.location.reload();
                                     } else {
                                         alert("Error al guardar el evento: " + response.message);
@@ -643,7 +649,7 @@ $conn->close();
                     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
                     xhr.onreadystatechange = function () {
                         if (xhr.readyState === 4 && xhr.status === 200) {
-                            alert("Evento guardado exitosamente");
+                            // alert("Evento guardado exitosamente");
                             window.location.reload();
                         }
                     };
@@ -677,7 +683,7 @@ $conn->close();
                 xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4 && xhr.status === 200) {
-                        alert("Evento eliminado exitosamente");
+                        // alert("Evento eliminado exitosamente");
                         location.reload();
                     }
                 };
