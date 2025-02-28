@@ -322,6 +322,25 @@ $conn->close();
         .table th, .table td {
             white-space: nowrap;
         }
+        .double-scroll {
+            width: 100%;
+        }
+        
+        .top-scroll {
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .top-scroll-spacer {
+            height: 1px;
+            min-width: 100%;
+        }
+
+        .sticky-wrapper {
+            border: 1px solid #dee2e6;
+            margin-top: 5px;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </head>
@@ -375,55 +394,60 @@ $conn->close();
                     <button type="submit" class="btn btn-success">Exportar a Excel</button>
                 </form><br>
 
-                <div class="sticky-wrapper">
-                    <table class="table table-bordered table-hover">
-                        <thead class="table-primary">
-                            <tr>
-                                <th rowspan="2" class="sticky-col sticky-funcionario">Funcionario</th>
-                                <th rowspan="2" class="sticky-col sticky-rut">RUT</th>
-                                <th rowspan="2" class="sticky-col sticky-proyecto">Proyecto</th>
-                                <?php foreach ($months as $month => $monthDates): ?>
-                                    <th colspan="<?php echo count($monthDates); ?>"><?php echo escape($month); ?></th>
-                                <?php endforeach; ?>
-                            </tr>
-                            <tr>
-                                <?php foreach ($dates as $date): ?>
-                                    <th>
-                                        <div class="day-name"><?php echo escape(getDayName($date)); ?></div>
-                                        <?php echo escape(date('d', strtotime($date))); ?>
-                                    </th>
-                                <?php endforeach; ?>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($attendance as $employee => $info): ?>
+                <div class="double-scroll">
+                    <div class="top-scroll">
+                        <div class="top-scroll-spacer"></div>
+                    </div>
+                    <div class="sticky-wrapper">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-primary">
                                 <tr>
-                                    <td class="sticky-col sticky-funcionario"><?php echo escape($employee); ?></td>
-                                    <td class="sticky-col sticky-rut"><?php echo escape($info['rut']); ?></td>
-                                    <td class="sticky-col sticky-proyecto"><?php echo escape($info['program']); ?></td>
-                                    <?php foreach ($dates as $date): ?>
-                                        <?php
-                                            $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event'], $eventColors) : '';
-                                            $noExitClass = isset($info['days'][$date]) && $info['days'][$date]['noExit'] ? 'no-exit' : '';
-                                            $unlinkedEvent = array_filter($unlinkedEvents, function($event) use ($employee, $date) {
-                                                return $event['nombre'] === $employee && getDateOnly($event['fecha']) === $date;
-                                            });
-                                            $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type'], $eventColors) : '';
-                                            $boldClass = isset($info['days'][$date]['manualEntry']) && $info['days'][$date]['manualEntry'] == 1 ? 'bold-x' : '';
-                                        ?>
-                                        <td class="attendance-cell <?php echo $noExitClass; ?> <?php echo $boldClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
-                                            <?php if (isset($info['days'][$date])): ?>
-                                                <span data-bs-toggle="tooltip" data-bs-placement="top" title="Entrada: <?php echo escape($info['days'][$date]['entry']); ?><?php if ($info['days'][$date]['exit']): ?>&#10;Salida: <?php echo escape($info['days'][$date]['exit']); ?><?php endif; ?>">X</span>
-                                            <?php elseif (!empty($unlinkedEvent)): ?>
-                                                <span data-bs-toggle="tooltip" data-bs-placement="top" title="Evento: <?php echo escape(reset($unlinkedEvent)['event_type']); ?>"></span>
-                                            <?php endif; ?>
-                                        </td>
+                                    <th rowspan="2" class="sticky-col sticky-funcionario">Funcionario</th>
+                                    <th rowspan="2" class="sticky-col sticky-rut">RUT</th>
+                                    <th rowspan="2" class="sticky-col sticky-proyecto">Proyecto</th>
+                                    <?php foreach ($months as $month => $monthDates): ?>
+                                        <th colspan="<?php echo count($monthDates); ?>"><?php echo escape($month); ?></th>
                                     <?php endforeach; ?>
-                                    <td><?php echo escape($info['countX']); ?></td>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                                <tr>
+                                    <?php foreach ($dates as $date): ?>
+                                        <th>
+                                            <div class="day-name"><?php echo escape(getDayName($date)); ?></div>
+                                            <?php echo escape(date('d', strtotime($date))); ?>
+                                        </th>
+                                    <?php endforeach; ?>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($attendance as $employee => $info): ?>
+                                    <tr>
+                                        <td class="sticky-col sticky-funcionario"><?php echo escape($employee); ?></td>
+                                        <td class="sticky-col sticky-rut"><?php echo escape($info['rut']); ?></td>
+                                        <td class="sticky-col sticky-proyecto"><?php echo escape($info['program']); ?></td>
+                                        <?php foreach ($dates as $date): ?>
+                                            <?php
+                                                $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event'], $eventColors) : '';
+                                                $noExitClass = isset($info['days'][$date]) && $info['days'][$date]['noExit'] ? 'no-exit' : '';
+                                                $unlinkedEvent = array_filter($unlinkedEvents, function($event) use ($employee, $date) {
+                                                    return $event['nombre'] === $employee && getDateOnly($event['fecha']) === $date;
+                                                });
+                                                $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type'], $eventColors) : '';
+                                                $boldClass = isset($info['days'][$date]['manualEntry']) && $info['days'][$date]['manualEntry'] == 1 ? 'bold-x' : '';
+                                            ?>
+                                            <td class="attendance-cell <?php echo $noExitClass; ?> <?php echo $boldClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
+                                                <?php if (isset($info['days'][$date])): ?>
+                                                    <span data-bs-toggle="tooltip" data-bs-placement="top" title="Entrada: <?php echo escape($info['days'][$date]['entry']); ?><?php if ($info['days'][$date]['exit']): ?>&#10;Salida: <?php echo escape($info['days'][$date]['exit']); ?><?php endif; ?>">X</span>
+                                                <?php elseif (!empty($unlinkedEvent)): ?>
+                                                    <span data-bs-toggle="tooltip" data-bs-placement="top" title="Evento: <?php echo escape(reset($unlinkedEvent)['event_type']); ?>"></span>
+                                                <?php endif; ?>
+                                            </td>
+                                        <?php endforeach; ?>
+                                        <td><?php echo escape($info['countX']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -618,6 +642,31 @@ $conn->close();
                 xhr.send("employee=" + encodeURIComponent(employee) + 
                          "&date=" + encodeURIComponent(date) + 
                          "&rut=" + encodeURIComponent(rut));
+            });
+
+            // Set up synchronized scrolling
+            const topScroll = document.querySelector('.top-scroll');
+            const bottomScroll = document.querySelector('.sticky-wrapper');
+            const spacer = document.querySelector('.top-scroll-spacer');
+
+            // Set initial width
+            function updateScrollWidth() {
+                spacer.style.width = bottomScroll.querySelector('table').offsetWidth + 'px';
+            }
+            
+            // Update width after page loads
+            updateScrollWidth();
+            
+            // Update width when window resizes
+            window.addEventListener('resize', updateScrollWidth);
+            
+            // Sync the scrolling
+            topScroll.addEventListener('scroll', function() {
+                bottomScroll.scrollLeft = topScroll.scrollLeft;
+            });
+            
+            bottomScroll.addEventListener('scroll', function() {
+                topScroll.scrollLeft = bottomScroll.scrollLeft;
             });
         });
     </script>
