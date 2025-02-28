@@ -445,7 +445,13 @@ $conn->close();
                                                 $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type'], $eventColors) : '';
                                                 $boldClass = isset($info['days'][$date]['manualEntry']) && $info['days'][$date]['manualEntry'] == 1 ? 'bold-x' : '';
                                             ?>
-                                            <td class="attendance-cell <?php echo $noExitClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
+                                            <td class="attendance-cell <?php echo $noExitClass; ?>" 
+                                                data-employee="<?php echo escape($employee); ?>" 
+                                                data-date="<?php echo escape($date); ?>" 
+                                                data-rut="<?php echo escape($info['rut']); ?>" 
+                                                data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>"
+                                                data-project="<?php echo escape($info['program']); ?>" 
+                                                style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
                                                 <?php if (isset($info['days'][$date])): ?>
                                                     <span data-bs-toggle="tooltip" data-bs-placement="top" title="Entrada: <?php echo escape($info['days'][$date]['entry']); ?><?php if ($info['days'][$date]['exit']): ?>&#10;Salida: <?php echo escape($info['days'][$date]['exit']); ?><?php endif; ?>">X</span>
                                                 <?php elseif (!empty($unlinkedEvent)): ?>
@@ -656,6 +662,15 @@ $conn->close();
                 var employee = document.getElementById('modalEmployee').textContent;
                 var date = document.getElementById('startDate').value;
                 var rut = document.getElementById('modalRut').textContent;
+                var project = document.getElementById('modalProjectHidden').value;
+
+                // Agregar console.log para debugging
+                console.log('Parámetros de eliminación:', {
+                    employee: employee,
+                    date: date,
+                    rut: rut,
+                    project: project
+                });
 
                 var xhr = new XMLHttpRequest();
                 xhr.open("POST", "delete_event.php", true);
@@ -668,7 +683,8 @@ $conn->close();
                 };
                 xhr.send("employee=" + encodeURIComponent(employee) + 
                          "&date=" + encodeURIComponent(date) + 
-                         "&rut=" + encodeURIComponent(rut));
+                         "&rut=" + encodeURIComponent(rut) +
+                         "&project=" + encodeURIComponent(project));
             });
 
             // Set up synchronized scrolling
