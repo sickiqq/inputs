@@ -107,6 +107,12 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
         $exitDate = isset($fila['fecha_salida']) ? formatExcelDate($fila['fecha_salida']) : null; // Fecha Salida
         $entryDateOnly = getDateOnly($entryDate);
         $exitDateOnly = $exitDate ? getDateOnly($exitDate) : null;
+        $manualEntry = $fila['manual_entry']; // Obtener el valor de manual_entry
+        
+        // if($employee == "Alejandro Javier Ramos Sarria"){
+        //     print_r($manualEntry . " ");
+        // }
+        
 
         if (!isset($attendance[$employee])) {
             $attendance[$employee] = [
@@ -126,7 +132,8 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
                         'exit' => $currentDate === $exitDateOnly ? $exitDate : null,
                         'noExit' => $exitDate === null,
                         'event' => null,
-                        'eventColor' => ''
+                        'eventColor' => '',
+                        'manualEntry' => $manualEntry // Asignar manualEntry por día
                     ];
                     $attendance[$employee]['countX']++;
                 }
@@ -134,6 +141,8 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
             }
         }
     }
+
+    // print_r($attendance);
 
     foreach ($events as $event) {
         $employee = $event['nombre'];
@@ -150,6 +159,7 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
 
     ksort($dates);
     ksort($attendance); // Ordenar por nombre del funcionario
+    // print_r($attendance);
     return [$attendance, array_keys($dates), $months, $unlinkedEvents];
 }
 
@@ -269,6 +279,9 @@ $conn->close();
         .nowrap {
             white-space: nowrap;
         }
+        .bold-x {
+            font-weight: bold;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </head>
@@ -356,8 +369,9 @@ $conn->close();
                                                 return $event['nombre'] === $employee && getDateOnly($event['fecha']) === $date;
                                             });
                                             $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type'], $eventColors) : '';
+                                            $boldClass = isset($info['days'][$date]['manualEntry']) && $info['days'][$date]['manualEntry'] == 1 ? 'bold-x' : '';
                                         ?>
-                                        <td class="attendance-cell <?php echo $noExitClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
+                                        <td class="attendance-cell <?php echo $noExitClass; ?> <?php echo $boldClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
                                             <?php if (isset($info['days'][$date])): ?>
                                                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="Entrada: <?php echo escape($info['days'][$date]['entry']); ?><?php if ($info['days'][$date]['exit']): ?>&#10;Salida: <?php echo escape($info['days'][$date]['exit']); ?><?php endif; ?>">X</span>
                                             <?php elseif (!empty($unlinkedEvent)): ?>
@@ -478,6 +492,11 @@ $conn->close();
                 var endDate = document.getElementById('endDate').value;
                 var rut = document.getElementById('modalRut').textContent;
                 var eventType = document.getElementById('statusSelect').value;
+
+                if (!eventType) {
+                    alert("Por favor, seleccione un tipo de evento.");
+                    return;
+                }
 
                 if (eventType === 'Asistencia') {
                     var location = document.getElementById('formato').value; // Assume this gets the location (1 for cordillera, 2 for patache)
