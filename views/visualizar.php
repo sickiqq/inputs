@@ -436,7 +436,12 @@ $conn->close();
                                                 $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type'], $eventColors) : '';
                                                 $boldClass = isset($info['days'][$date]['manualEntry']) && $info['days'][$date]['manualEntry'] == 1 ? 'bold-x' : '';
                                             ?>
-                                            <td class="attendance-cell <?php echo $noExitClass; ?> <?php echo $boldClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
+                                            <td class="attendance-cell <?php echo $noExitClass; ?> <?php echo $boldClass; ?>" 
+                                                data-employee="<?php echo escape($employee); ?>" 
+                                                data-date="<?php echo escape($date); ?>" 
+                                                data-rut="<?php echo escape($info['rut']); ?>" 
+                                                data-project="<?php echo escape($info['program']); ?>"
+                                                data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>">
                                                 <?php if (isset($info['days'][$date])): ?>
                                                     <span data-bs-toggle="tooltip" data-bs-placement="top" title="Entrada: <?php echo escape($info['days'][$date]['entry']); ?><?php if ($info['days'][$date]['exit']): ?>&#10;Salida: <?php echo escape($info['days'][$date]['exit']); ?><?php endif; ?>">X</span>
                                                 <?php elseif (!empty($unlinkedEvent)): ?>
@@ -511,11 +516,13 @@ $conn->close();
             document.getElementById('endDate').value = date;
             document.getElementById('statusSelect').value = eventType || '';
             
-            // Get the project value from the row
-            const row = document.querySelector(`td[data-employee="${employee}"]`).closest('tr');
-            const project = row.querySelector('.sticky-proyecto').textContent;
-            document.getElementById('modalProject').textContent = project;
-            document.getElementById('modalProjectHidden').value = project;
+            // Modificar el selector para que sea más específico
+            const clickedCell = event.target.closest('.attendance-cell');
+            if (clickedCell) {
+                const project = clickedCell.dataset.project;
+                document.getElementById('modalProject').textContent = project;
+                document.getElementById('modalProjectHidden').value = project;
+            }
             
             var modal = new bootstrap.Modal(document.getElementById('infoModal'));
             modal.show();
@@ -553,8 +560,13 @@ $conn->close();
 
             // Agregar evento de clic a las celdas de asistencia
             document.querySelectorAll('.attendance-cell').forEach(cell => {
-                cell.addEventListener('click', function() {
-                    showModal(this.dataset.employee, this.dataset.date, this.dataset.rut, this.dataset.eventType);
+                cell.addEventListener('click', function(event) {
+                    showModal(
+                        this.dataset.employee,
+                        this.dataset.date,
+                        this.dataset.rut,
+                        this.dataset.eventType
+                    );
                 });
             });
 
