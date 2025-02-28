@@ -142,19 +142,28 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
     }
 
     // Actualizar el procesamiento de eventos para usar la clave compuesta
+    // Reemplazar el bucle foreach actual con este código actualizado
     foreach ($events as $event) {
         $employee = $event['nombre'];
         $date = getDateOnly($event['fecha']);
         $eventType = $event['event_type'];
         
         // Buscar en todas las entradas que coincidan con el empleado
+        $foundMatch = false;
         foreach ($attendance as $key => $info) {
             list($empName, $empProgram) = explode('|', $key);
-            if ($empName === $employee && isset($info['days'][$date])) {
-                $attendance[$key]['days'][$date]['event'] = $eventType;
-                $attendance[$key]['days'][$date]['eventColor'] = getEventColor($eventType, $eventColors);
-                break;
+            if ($empName === $employee) {
+                if (isset($info['days'][$date])) {
+                    $attendance[$key]['days'][$date]['event'] = $eventType;
+                    $attendance[$key]['days'][$date]['eventColor'] = getEventColor($eventType, $eventColors);
+                    $foundMatch = true;
+                }
             }
+        }
+        
+        // Si no se encontró coincidencia, agregar el evento a unlinkedEvents
+        if (!$foundMatch) {
+            $unlinkedEvents[] = $event;
         }
     }
 
@@ -436,12 +445,7 @@ $conn->close();
                                                 $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type'], $eventColors) : '';
                                                 $boldClass = isset($info['days'][$date]['manualEntry']) && $info['days'][$date]['manualEntry'] == 1 ? 'bold-x' : '';
                                             ?>
-                                            <td class="attendance-cell <?php echo $noExitClass; ?> <?php echo $boldClass; ?>" 
-                                                data-employee="<?php echo escape($employee); ?>" 
-                                                data-date="<?php echo escape($date); ?>" 
-                                                data-rut="<?php echo escape($info['rut']); ?>" 
-                                                data-project="<?php echo escape($info['program']); ?>"
-                                                data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>">
+                                            <td class="attendance-cell <?php echo $noExitClass; ?>" data-employee="<?php echo escape($employee); ?>" data-date="<?php echo escape($date); ?>" data-rut="<?php echo escape($info['rut']); ?>" data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>" style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
                                                 <?php if (isset($info['days'][$date])): ?>
                                                     <span data-bs-toggle="tooltip" data-bs-placement="top" title="Entrada: <?php echo escape($info['days'][$date]['entry']); ?><?php if ($info['days'][$date]['exit']): ?>&#10;Salida: <?php echo escape($info['days'][$date]['exit']); ?><?php endif; ?>">X</span>
                                                 <?php elseif (!empty($unlinkedEvent)): ?>
