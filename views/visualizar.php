@@ -17,7 +17,7 @@ if ($conn->connect_error) {
     die("Conexión fallida: " . $conn->connect_error);
 }
 
-// Función para formatear fechas de Excel
+// Funciones de utilidad para fechas
 function formatExcelDate($excelDate) {
     if (is_numeric($excelDate)) {
         $unixDate = ($excelDate - 25569) * 86400;
@@ -26,17 +26,14 @@ function formatExcelDate($excelDate) {
     return $excelDate;
 }
 
-// Función para obtener solo la fecha de una fecha completa
 function getDateOnly($dateTime) {
     return explode(' ', $dateTime)[0];
 }
 
-// Función para obtener el nombre del mes
 function getMonthName($date) {
     return date('F', strtotime($date));
 }
 
-// Función para obtener el nombre del día
 function getDayName($date) {
     return date('D', strtotime($date));
 }
@@ -46,7 +43,7 @@ function escape($value) {
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
 }
 
-// Función para obtener eventos desde la base de datos
+// Funciones para interactuar con la base de datos
 function getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino) {
     $sql = "SELECT * FROM employee_events WHERE fecha BETWEEN ? AND ?";
     $stmt = $conn->prepare($sql);
@@ -62,6 +59,29 @@ function getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino) {
     }
     $stmt->close();
     return $events;
+}
+
+function saveEvent($conn, $identificador, $nombre, $fecha, $event_type) {
+    $stmt = $conn->prepare("INSERT INTO employee_events (identificador, nombre, fecha, event_type) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssss", $identificador, $nombre, $fecha, $event_type);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function getEventColors($conn) {
+    $colors = [];
+    $sql = "SELECT nombre, color_html FROM event_types";
+    $result = $conn->query($sql);
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $colors[$row['nombre']] = $row['color_html'];
+        }
+    }
+    return $colors;
+}
+
+function getEventColor($event_type, $eventColors) {
+    return $eventColors[$event_type] ?? "#FFFFFF";
 }
 
 // Función para generar la matriz de asistencia
@@ -133,43 +153,14 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
     return [$attendance, array_keys($dates), $months, $unlinkedEvents];
 }
 
-// Función para guardar evento en la base de datos
-function saveEvent($conn, $identificador, $nombre, $fecha, $event_type) {
-    $stmt = $conn->prepare("INSERT INTO employee_events (identificador, nombre, fecha, event_type) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("ssss", $identificador, $nombre, $fecha, $event_type);
-    $stmt->execute();
-    $stmt->close();
-}
-
-// Función para obtener el color asociado a un tipo de evento desde la base de datos
-function getEventColors($conn) {
-    $colors = [];
-    $sql = "SELECT nombre, color_html FROM event_types";
-    $result = $conn->query($sql);
-    if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $colors[$row['nombre']] = $row['color_html'];
-        }
-    }
-    return $colors;
-}
-
-// Obtener colores de eventos
-$eventColors = getEventColors($conn);
-
-// Función para obtener el color asociado a un tipo de evento
-function getEventColor($event_type, $eventColors) {
-    return $eventColors[$event_type] ?? "#FFFFFF";
-}
-
+// Obtener parámetros de la URL
 $fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : date('Y-m-01');
 $fecha_termino = isset($_GET['fecha_termino']) ? $_GET['fecha_termino'] : date('Y-m-t');
 $formato = isset($_GET['formato']) ? $_GET['formato'] : '1';
 
+// Obtener datos según formato seleccionado
 $datos = [];
-
 if ($formato == '1') {
-
     $sql = "SELECT * FROM data1 WHERE fecha_entrada BETWEEN ? AND ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ss", $fecha_inicio, $fecha_termino);
@@ -191,6 +182,8 @@ if ($formato == '1') {
     $stmt->close();
 }
 
+// Obtener eventos y colores
+$eventColors = getEventColors($conn);
 $events = getEventsFromDatabase($conn, $fecha_inicio, $fecha_termino);
 list($attendance, $dates, $months, $unlinkedEvents) = generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino, $eventColors);
 
@@ -278,73 +271,6 @@ $conn->close();
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function toggleRows(index) {
-            var rows = document.querySelectorAll('.extra-row-' + index);
-            var button = document.getElementById('toggleButton-' + index);
-            rows.forEach(row => row.style.display = row.style.display === 'none' ? '' : 'none');
-            button.textContent = button.textContent === 'Ver más' ? 'Ver menos' : 'Ver más';
-        }
-
-        function showModal(employee, date, rut, eventType) {
-            document.getElementById('modalEmployee').textContent = employee;
-            document.getElementById('modalRut').textContent = rut;
-            document.getElementById('startDate').value = date;
-            document.getElementById('endDate').value = date;
-            document.getElementById('statusSelect').value = eventType || '';
-            var modal = new bootstrap.Modal(document.getElementById('infoModal'));
-            modal.show();
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            })
-
-            document.querySelectorAll('.attendance-cell').forEach(cell => {
-                cell.addEventListener('click', function() {
-                    showModal(this.dataset.employee, this.dataset.date, this.dataset.rut, this.dataset.eventType);
-                });
-            });
-
-            document.getElementById('saveButton').addEventListener('click', function() {
-                var employee = document.getElementById('modalEmployee').textContent;
-                var startDate = document.getElementById('startDate').value;
-                var endDate = document.getElementById('endDate').value;
-                var rut = document.getElementById('modalRut').textContent;
-                var eventType = document.getElementById('statusSelect').value;
-
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", "save_event.php", true);
-                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4 && xhr.status === 200) {
-                        alert("Evento guardado exitosamente");
-                        location.reload();
-                    }
-                };
-                xhr.send("employee=" + encodeURIComponent(employee) + "&start_date=" + encodeURIComponent(startDate) + "&end_date=" + encodeURIComponent(endDate) + "&rut=" + encodeURIComponent(rut) + "&event_type=" + encodeURIComponent(eventType));
-            });
-
-            document.getElementById('deleteButton').addEventListener('click', function() {
-                var employee = document.getElementById('modalEmployee').textContent;
-                var date = document.getElementById('startDate').value;
-                var rut = document.getElementById('modalRut').textContent;
-
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", "delete_event.php", true);
-                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4 && xhr.status === 200) {
-                        alert("Evento eliminado exitosamente");
-                        location.reload();
-                    }
-                };
-                xhr.send("employee=" + encodeURIComponent(employee) + "&date=" + encodeURIComponent(date) + "&rut=" + encodeURIComponent(rut));
-            });
-        });
-    </script>
 </head>
 <body>
     <div class="container">
@@ -395,7 +321,6 @@ $conn->close();
                     <input type="hidden" name="formato" value="<?php echo escape($formato); ?>">
                     <button type="submit" class="btn btn-success">Exportar a Excel</button>
                 </form><br>
-
 
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
@@ -476,6 +401,7 @@ $conn->close();
                             <?php foreach ($eventColors as $eventName => $color): ?>
                             <option value="<?php echo $eventName; ?>"><?php echo $eventName; ?></option>
                             <?php endforeach; ?>
+                            <option value="Asistencia">Asistencia</option> <!-- New option added -->
                         </select>
                     </div>
                 </div>
@@ -488,6 +414,7 @@ $conn->close();
     </div>
 
     <script>
+        // Funciones de utilidad
         function toggleRows(index) {
             var rows = document.querySelectorAll('.extra-row-' + index);
             var button = document.getElementById('toggleButton-' + index);
@@ -505,38 +432,117 @@ $conn->close();
             modal.show();
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            })
+        function saveToDatabase(table, data) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "save_to_database.php", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        console.log("Data saved to " + table);
+                    } else {
+                        console.error("Error saving data to " + table + ": " + xhr.statusText);
+                    }
+                }
+            };
+            var params = "table=" + encodeURIComponent(table);
+            for (var key in data) {
+                if (data.hasOwnProperty(key)) {
+                    params += "&" + encodeURIComponent(key) + "=" + encodeURIComponent(data[key]);
+                }
+            }
+            xhr.send(params);
+        }
 
+        // Inicialización del documento
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Agregar evento de clic a las celdas de asistencia
             document.querySelectorAll('.attendance-cell').forEach(cell => {
                 cell.addEventListener('click', function() {
                     showModal(this.dataset.employee, this.dataset.date, this.dataset.rut, this.dataset.eventType);
                 });
             });
 
-            document.getElementById('saveButton').addEventListener('click', function() {
+            // Configurar el botón Guardar
+            document.getElementById('saveButton').addEventListener('click', function(event) {
+                event.preventDefault(); // Prevent default form submission
+
                 var employee = document.getElementById('modalEmployee').textContent;
                 var startDate = document.getElementById('startDate').value;
                 var endDate = document.getElementById('endDate').value;
                 var rut = document.getElementById('modalRut').textContent;
                 var eventType = document.getElementById('statusSelect').value;
 
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", "save_event.php", true);
-                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4 && xhr.status === 200) {
-                        alert("Evento guardado exitosamente");
-                        location.reload();
+                if (eventType === 'Asistencia') {
+                    var location = document.getElementById('formato').value; // Assume this gets the location (1 for cordillera, 2 for patache)
+                    var table = location === '1' ? 'data1' : 'data2';
+                    var data = {
+                        identificador: rut,
+                        nombre: employee,
+                        contrato: '', // Add appropriate value
+                        fecha_entrada: startDate,
+                        fecha_salida: endDate,
+                        created_at: new Date().toISOString().slice(0, 19).replace('T', ' ') // Format created_at correctly
+                    };
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("POST", "save_to_database.php", true);
+                    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                    xhr.onreadystatechange = function () {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                console.log(xhr.responseText); // Log the response text
+                                try {
+                                    var response = JSON.parse(xhr.responseText);
+                                    if (response.success) {
+                                        alert("Evento guardado exitosamente");
+                                        window.location.reload();
+                                    } else {
+                                        alert("Error al guardar el evento: " + response.message);
+                                    }
+                                } catch (e) {
+                                    alert("Error al procesar la respuesta del servidor.");
+                                }
+                            } else {
+                                alert("Error al guardar el evento: " + xhr.statusText);
+                            }
+                        }
+                    };
+                    var params = "table=" + encodeURIComponent(table);
+                    for (var key in data) {
+                        if (data.hasOwnProperty(key)) {
+                            params += "&" + encodeURIComponent(key) + "=" + encodeURIComponent(data[key]);
+                        }
                     }
-                };
-                xhr.send("employee=" + encodeURIComponent(employee) + "&start_date=" + encodeURIComponent(startDate) + "&end_date=" + encodeURIComponent(endDate) + "&rut=" + encodeURIComponent(rut) + "&event_type=" + encodeURIComponent(eventType));
+                    xhr.send(params);
+                } else {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("POST", "save_event.php", true);
+                    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                    xhr.onreadystatechange = function () {
+                        if (xhr.readyState === 4 && xhr.status === 200) {
+                            alert("Evento guardado exitosamente");
+                            window.location.reload();
+                        }
+                    };
+                    xhr.send("employee=" + encodeURIComponent(employee) + 
+                             "&start_date=" + encodeURIComponent(startDate) + 
+                             "&end_date=" + encodeURIComponent(endDate) + 
+                             "&rut=" + encodeURIComponent(rut) + 
+                             "&event_type=" + encodeURIComponent(eventType));
+                }
             });
 
-            document.getElementById('deleteButton').addEventListener('click', function() {
+            // Configurar el botón Eliminar
+            document.getElementById('deleteButton').addEventListener('click', function(event) {
+                event.preventDefault(); // Prevent default form submission
+
                 var employee = document.getElementById('modalEmployee').textContent;
                 var date = document.getElementById('startDate').value;
                 var rut = document.getElementById('modalRut').textContent;
@@ -550,10 +556,11 @@ $conn->close();
                         location.reload();
                     }
                 };
-                xhr.send("employee=" + encodeURIComponent(employee) + "&date=" + encodeURIComponent(date) + "&rut=" + encodeURIComponent(rut));
+                xhr.send("employee=" + encodeURIComponent(employee) + 
+                         "&date=" + encodeURIComponent(date) + 
+                         "&rut=" + encodeURIComponent(rut));
             });
         });
     </script>
 </body>
 </html>
-

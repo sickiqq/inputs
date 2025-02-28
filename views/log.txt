@@ -1,0 +1,1 @@
+2025-02-28 13:34:33 - SQL: INSERT INTO data1 (identificador, nombre, contrato, fecha_entrada, fecha_salida, created_at) VALUES ('12837993-2', 'Alejandra Fabiola Huerta Alfaro', '', '2025-01-05', '2025-01-05', '2025-02-28 13:33:32')
