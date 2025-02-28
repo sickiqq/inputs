@@ -445,7 +445,7 @@ $conn->close();
                                                 $unlinkedEventColor = !empty($unlinkedEvent) ? getEventColor(reset($unlinkedEvent)['event_type'], $eventColors) : '';
                                                 $boldClass = isset($info['days'][$date]['manualEntry']) && $info['days'][$date]['manualEntry'] == 1 ? 'bold-x' : '';
                                             ?>
-                                            <td class="attendance-cell <?php echo $noExitClass; ?>" 
+                                            <td class="attendance-cell <?php echo $noExitClass; ?> <?php echo $boldClass; ?>" 
                                                 data-employee="<?php echo escape($employee); ?>" 
                                                 data-date="<?php echo escape($date); ?>" 
                                                 data-rut="<?php echo escape($info['rut']); ?>" 
