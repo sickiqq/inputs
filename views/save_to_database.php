@@ -16,6 +16,7 @@ if ($conn->connect_error) {
 $table = $_POST['table'];
 $record = $_POST;
 unset($record['table']);
+$record['manual_entry'] = 1; // Set manual_entry to 1
 
 $columns = implode(", ", array_keys($record));
 $values = implode(", ", array_map(function($value) use ($conn) {

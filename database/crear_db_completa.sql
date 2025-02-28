@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS data1 (
     contrato VARCHAR(50) NOT NULL,
     fecha_entrada DATETIME,
     fecha_salida DATETIME,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    manual_entry TINYINT(1) DEFAULT 0 -- Nueva columna para identificar entradas manuales
 );
 -- Crear tabla data2
 CREATE TABLE IF NOT EXISTS data2 (
@@ -29,7 +30,8 @@ CREATE TABLE IF NOT EXISTS data2 (
     punto_control VARCHAR(50),
     rut_empresa VARCHAR(20) NOT NULL,
     tipo_personal VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    manual_entry TINYINT(1) DEFAULT 0 -- Nueva columna para identificar entradas manuales
 );
 -- Crear tabla employee_events
 CREATE TABLE IF NOT EXISTS employee_events (
