@@ -100,22 +100,21 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
     }
 
     foreach ($datos as $fila) {
-        $employee = $fila['nombre']; // Nombre Concatenado
-        $rut = $fila['identificador']; // Documento Identificador
-        $program = $fila['contrato']; // Contrato
-        $entryDate = formatExcelDate($fila['fecha_entrada']); // Fecha Entrada
-        $exitDate = isset($fila['fecha_salida']) ? formatExcelDate($fila['fecha_salida']) : null; // Fecha Salida
+        $employee = $fila['nombre'];
+        $rut = $fila['identificador'];
+        $program = $fila['contrato'];
+        $entryDate = formatExcelDate($fila['fecha_entrada']);
+        $exitDate = isset($fila['fecha_salida']) ? formatExcelDate($fila['fecha_salida']) : null;
         $entryDateOnly = getDateOnly($entryDate);
         $exitDateOnly = $exitDate ? getDateOnly($exitDate) : null;
-        $manualEntry = $fila['manual_entry']; // Obtener el valor de manual_entry
+        $manualEntry = $fila['manual_entry'];
         
-        // if($employee == "Alejandro Javier Ramos Sarria"){
-        //     print_r($manualEntry . " ");
-        // }
-        
+        // Crear una clave única combinando empleado y proyecto
+        $key = $employee . '|' . $program;
 
-        if (!isset($attendance[$employee])) {
-            $attendance[$employee] = [
+        if (!isset($attendance[$key])) {
+            $attendance[$key] = [
+                'nombre' => $employee,  // Agregamos el nombre separado para facilitar la visualización
                 'rut' => $rut,
                 'program' => $program,
                 'days' => [],
@@ -127,39 +126,40 @@ function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino
             $currentDate = $entryDateOnly;
             while ($currentDate <= $exitDateOnly || ($exitDateOnly === null && $currentDate === $entryDateOnly)) {
                 if (isset($dates[$currentDate])) {
-                    $attendance[$employee]['days'][$currentDate] = [
+                    $attendance[$key]['days'][$currentDate] = [
                         'entry' => $currentDate === $entryDateOnly ? $entryDate : null,
                         'exit' => $currentDate === $exitDateOnly ? $exitDate : null,
                         'noExit' => $exitDate === null,
                         'event' => null,
                         'eventColor' => '',
-                        'manualEntry' => $manualEntry // Asignar manualEntry por día
+                        'manualEntry' => $manualEntry
                     ];
-                    $attendance[$employee]['countX']++;
+                    $attendance[$key]['countX']++;
                 }
                 $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
             }
         }
     }
 
-    // print_r($attendance);
-
+    // Actualizar el procesamiento de eventos para usar la clave compuesta
     foreach ($events as $event) {
         $employee = $event['nombre'];
-        $date = getDateOnly($event['fecha']); // Obtener solo la fecha sin la hora
+        $date = getDateOnly($event['fecha']);
         $eventType = $event['event_type'];
-
-        if (isset($attendance[$employee]) && isset($attendance[$employee]['days'][$date])) {
-            $attendance[$employee]['days'][$date]['event'] = $eventType;
-            $attendance[$employee]['days'][$date]['eventColor'] = getEventColor($eventType, $eventColors);
-        } else {
-            $unlinkedEvents[] = $event;
+        
+        // Buscar en todas las entradas que coincidan con el empleado
+        foreach ($attendance as $key => $info) {
+            list($empName, $empProgram) = explode('|', $key);
+            if ($empName === $employee && isset($info['days'][$date])) {
+                $attendance[$key]['days'][$date]['event'] = $eventType;
+                $attendance[$key]['days'][$date]['eventColor'] = getEventColor($eventType, $eventColors);
+                break;
+            }
         }
     }
 
     ksort($dates);
-    ksort($attendance); // Ordenar por nombre del funcionario
-    // print_r($attendance);
+    ksort($attendance);
     return [$attendance, array_keys($dates), $months, $unlinkedEvents];
 }
 
@@ -419,7 +419,9 @@ $conn->close();
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($attendance as $employee => $info): ?>
+                                <?php foreach ($attendance as $key => $info): 
+                                    list($employee, $program) = explode('|', $key);
+                                ?>
                                     <tr>
                                         <td class="sticky-col sticky-funcionario"><?php echo escape($employee); ?></td>
                                         <td class="sticky-col sticky-rut"><?php echo escape($info['rut']); ?></td>

@@ -127,9 +127,9 @@ if (isset($_FILES['archivos']) && count($_FILES['archivos']['name']) > 0) {
                             $fecha_entrada = formatExcelDate($fila[3]);
                             $fecha_salida = isset($fila[4]) ? formatExcelDate($fila[4]) : null;
 
-                            // Verificar si el registro ya existe
-                            $check_stmt = $conn->prepare("SELECT COUNT(*) FROM data1 WHERE contrato = ? AND identificador = ?");
-                            $check_stmt->bind_param("ss", $contrato, $identificador);
+                            // Verificar si el registro ya existe considerando las fechas
+                            $check_stmt = $conn->prepare("SELECT COUNT(*) FROM data1 WHERE contrato = ? AND identificador = ? AND fecha_entrada = ? AND (fecha_salida = ? OR (fecha_salida IS NULL AND ? IS NULL))");
+                            $check_stmt->bind_param("sssss", $contrato, $identificador, $fecha_entrada, $fecha_salida, $fecha_salida);
                             $check_stmt->execute();
                             $check_stmt->bind_result($count);
                             $check_stmt->fetch();
