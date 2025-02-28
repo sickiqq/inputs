@@ -450,7 +450,8 @@ $conn->close();
                                                 data-date="<?php echo escape($date); ?>" 
                                                 data-rut="<?php echo escape($info['rut']); ?>" 
                                                 data-event-type="<?php echo escape($info['days'][$date]['event'] ?? ''); ?>"
-                                                data-project="<?php echo escape($info['program']); ?>" 
+                                                data-project="<?php echo escape($info['program']); ?>"
+                                                data-manual-entry="<?php echo isset($info['days'][$date]['manualEntry']) ? $info['days'][$date]['manualEntry'] : '1'; ?>"
                                                 style="background-color: <?php echo $eventColor ?: $unlinkedEventColor; ?>;">
                                                 <?php if (isset($info['days'][$date])): ?>
                                                     <span data-bs-toggle="tooltip" data-bs-placement="top" title="Entrada: <?php echo escape($info['days'][$date]['entry']); ?><?php if ($info['days'][$date]['exit']): ?>&#10;Salida: <?php echo escape($info['days'][$date]['exit']); ?><?php endif; ?>">X</span>
@@ -483,6 +484,7 @@ $conn->close();
                     <p><strong>RUT:</strong> <span id="modalRut"></span></p>
                     <p><strong>Proyecto:</strong> <span id="modalProject"></span></p>
                     <input type="hidden" id="modalProjectHidden">
+                    <input type="hidden" id="modalManualEntry">
                     
                     <!-- Nueva estructura para fechas en la misma fila -->
                     <div class="row mb-3">
@@ -536,8 +538,10 @@ $conn->close();
             const clickedCell = event.target.closest('.attendance-cell');
             if (clickedCell) {
                 const project = clickedCell.dataset.project;
+                const manualEntry = clickedCell.dataset.manualEntry;
                 document.getElementById('modalProject').textContent = project;
                 document.getElementById('modalProjectHidden').value = project;
+                document.getElementById('modalManualEntry').value = manualEntry;
             }
             
             var modal = new bootstrap.Modal(document.getElementById('infoModal'));
@@ -669,28 +673,38 @@ $conn->close();
                 var date = document.getElementById('startDate').value;
                 var rut = document.getElementById('modalRut').textContent;
                 var project = document.getElementById('modalProjectHidden').value;
+                var manualEntry = document.getElementById('modalManualEntry').value;
 
-                // Agregar console.log para debugging
+                function proceedWithDelete() {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("POST", "delete_event.php", true);
+                    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                    xhr.onreadystatechange = function () {
+                        if (xhr.readyState === 4 && xhr.status === 200) {
+                            location.reload();
+                        }
+                    };
+                    xhr.send("employee=" + encodeURIComponent(employee) + 
+                             "&date=" + encodeURIComponent(date) + 
+                             "&rut=" + encodeURIComponent(rut) +
+                             "&project=" + encodeURIComponent(project));
+                }
+
                 console.log('Parámetros de eliminación:', {
                     employee: employee,
                     date: date,
                     rut: rut,
-                    project: project
+                    project: project,
+                    manualEntry: manualEntry
                 });
 
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", "delete_event.php", true);
-                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4 && xhr.status === 200) {
-                        // alert("Evento eliminado exitosamente");
-                        location.reload();
+                if (manualEntry === '0') {
+                    if (confirm("Este registro corresponde a una importación del reloj control. ¿Está seguro de que desea eliminarlo?")) {
+                        proceedWithDelete();
                     }
-                };
-                xhr.send("employee=" + encodeURIComponent(employee) + 
-                         "&date=" + encodeURIComponent(date) + 
-                         "&rut=" + encodeURIComponent(rut) +
-                         "&project=" + encodeURIComponent(project));
+                } else {
+                    proceedWithDelete();
+                }
             });
 
             // Set up synchronized scrolling
