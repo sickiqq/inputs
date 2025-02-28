@@ -282,6 +282,46 @@ $conn->close();
         .bold-x {
             font-weight: bold;
         }
+        .sticky-wrapper {
+            position: relative;
+            overflow-x: auto;
+            overflow-y: visible;
+            border: 1px solid #dee2e6;
+            background: white;
+        }
+        
+        .sticky-col {
+            position: sticky;
+            background: white;
+            z-index: 1000;
+            border-right: 2px solid #dee2e6 !important;
+        }
+        
+        .sticky-funcionario {
+            left: 0;
+            min-width: 200px;
+            max-width: 200px;
+        }
+        
+        .sticky-rut {
+            left: 200px;
+            min-width: 120px;
+            max-width: 120px;
+        }
+        
+        .sticky-proyecto {
+            left: 320px;
+            min-width: 150px;
+            max-width: 150px;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th, .table td {
+            white-space: nowrap;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </head>
@@ -335,13 +375,13 @@ $conn->close();
                     <button type="submit" class="btn btn-success">Exportar a Excel</button>
                 </form><br>
 
-                <div class="table-responsive">
+                <div class="sticky-wrapper">
                     <table class="table table-bordered table-hover">
                         <thead class="table-primary">
                             <tr>
-                                <th rowspan="2" class="nowrap">Funcionario</th>
-                                <th rowspan="2" class="nowrap">RUT</th>
-                                <th rowspan="2" class="nowrap">Proyecto</th>
+                                <th rowspan="2" class="sticky-col sticky-funcionario">Funcionario</th>
+                                <th rowspan="2" class="sticky-col sticky-rut">RUT</th>
+                                <th rowspan="2" class="sticky-col sticky-proyecto">Proyecto</th>
                                 <?php foreach ($months as $month => $monthDates): ?>
                                     <th colspan="<?php echo count($monthDates); ?>"><?php echo escape($month); ?></th>
                                 <?php endforeach; ?>
@@ -358,9 +398,9 @@ $conn->close();
                         <tbody>
                             <?php foreach ($attendance as $employee => $info): ?>
                                 <tr>
-                                    <td class="nowrap"><?php echo escape($employee); ?></td>
-                                    <td class="nowrap"><?php echo escape($info['rut']); ?></td>
-                                    <td class="nowrap"><?php echo escape($info['program']); ?></td>
+                                    <td class="sticky-col sticky-funcionario"><?php echo escape($employee); ?></td>
+                                    <td class="sticky-col sticky-rut"><?php echo escape($info['rut']); ?></td>
+                                    <td class="sticky-col sticky-proyecto"><?php echo escape($info['program']); ?></td>
                                     <?php foreach ($dates as $date): ?>
                                         <?php
                                             $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event'], $eventColors) : '';
