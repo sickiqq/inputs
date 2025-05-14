@@ -4,6 +4,7 @@ ini_set('memory_limit', '1024M'); // Aumenta a 1GB
 
 // Cargar autoload de Composer
 require '../vendor/autoload.php';
+require '../includes/functions.php'; // Include the shared functions file
 
 // Conectar a la base de datos
 $servername = "localhost";
@@ -15,27 +16,6 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 
 if ($conn->connect_error) {
     die("Conexión fallida: " . $conn->connect_error);
-}
-
-// Funciones de utilidad para fechas
-function formatExcelDate($excelDate) {
-    if (is_numeric($excelDate)) {
-        $unixDate = ($excelDate - 25569) * 86400;
-        return gmdate("Y-m-d H:i:s", (int)$unixDate);
-    }
-    return $excelDate;
-}
-
-function getDateOnly($dateTime) {
-    return explode(' ', $dateTime)[0];
-}
-
-function getMonthName($date) {
-    return date('F', strtotime($date));
-}
-
-function getDayName($date) {
-    return date('D', strtotime($date));
 }
 
 // Función para escapar valores de forma segura
@@ -80,98 +60,6 @@ function getEventColors($conn) {
     return $colors;
 }
 
-function getEventColor($event_type, $eventColors) {
-    return $eventColors[$event_type] ?? "#FFFFFF";
-}
-
-// Función para generar la matriz de asistencia
-function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino, $eventColors) {
-    $attendance = [];
-    $dates = [];
-    $months = [];
-    $unlinkedEvents = [];
-
-    // Generar todas las fechas en el rango
-    $currentDate = $fecha_inicio;
-    while ($currentDate <= $fecha_termino) {
-        $dates[$currentDate] = true;
-        $months[getMonthName($currentDate)][] = $currentDate;
-        $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
-    }
-
-    foreach ($datos as $fila) {
-        $employee = $fila['nombre'];
-        $rut = $fila['identificador'];
-        $program = $fila['contrato'];
-        $entryDate = formatExcelDate($fila['fecha_entrada']);
-        $exitDate = isset($fila['fecha_salida']) ? formatExcelDate($fila['fecha_salida']) : null;
-        $entryDateOnly = getDateOnly($entryDate);
-        $exitDateOnly = $exitDate ? getDateOnly($exitDate) : null;
-        $manualEntry = $fila['manual_entry'];
-        
-        // Crear una clave única combinando empleado y proyecto
-        $key = $employee . '|' . $program;
-
-        if (!isset($attendance[$key])) {
-            $attendance[$key] = [
-                'nombre' => $employee,  // Agregamos el nombre separado para facilitar la visualización
-                'rut' => $rut,
-                'program' => $program,
-                'days' => [],
-                'countX' => 0
-            ];
-        }
-
-        if ($entryDateOnly) {
-            $currentDate = $entryDateOnly;
-            while ($currentDate <= $exitDateOnly || ($exitDateOnly === null && $currentDate === $entryDateOnly)) {
-                if (isset($dates[$currentDate])) {
-                    $attendance[$key]['days'][$currentDate] = [
-                        'entry' => $currentDate === $entryDateOnly ? $entryDate : null,
-                        'exit' => $currentDate === $exitDateOnly ? $exitDate : null,
-                        'noExit' => $exitDate === null,
-                        'event' => null,
-                        'eventColor' => '',
-                        'manualEntry' => $manualEntry
-                    ];
-                    $attendance[$key]['countX']++;
-                }
-                $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
-            }
-        }
-    }
-
-    // Actualizar el procesamiento de eventos para usar la clave compuesta
-    // Reemplazar el bucle foreach actual con este código actualizado
-    foreach ($events as $event) {
-        $employee = $event['nombre'];
-        $date = getDateOnly($event['fecha']);
-        $eventType = $event['event_type'];
-        
-        // Buscar en todas las entradas que coincidan con el empleado
-        $foundMatch = false;
-        foreach ($attendance as $key => $info) {
-            list($empName, $empProgram) = explode('|', $key);
-            if ($empName === $employee) {
-                if (isset($info['days'][$date])) {
-                    $attendance[$key]['days'][$date]['event'] = $eventType;
-                    $attendance[$key]['days'][$date]['eventColor'] = getEventColor($eventType, $eventColors);
-                    $foundMatch = true;
-                }
-            }
-        }
-        
-        // Si no se encontró coincidencia, agregar el evento a unlinkedEvents
-        if (!$foundMatch) {
-            $unlinkedEvents[] = $event;
-        }
-    }
-
-    ksort($dates);
-    ksort($attendance);
-    return [$attendance, array_keys($dates), $months, $unlinkedEvents];
-}
-
 // Obtener parámetros de la URL
 $fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : date('Y-m-01');
 $fecha_termino = isset($_GET['fecha_termino']) ? $_GET['fecha_termino'] : date('Y-m-t');
@@ -180,9 +68,9 @@ $formato = isset($_GET['formato']) ? $_GET['formato'] : '1';
 // Obtener datos según formato seleccionado
 $datos = [];
 if ($formato == '1') {
-    $sql = "SELECT * FROM data1 WHERE fecha_entrada BETWEEN ? AND ?";
+    $sql = "SELECT * FROM data1 WHERE fecha_entrada <= ? AND (fecha_salida IS NULL OR fecha_salida >= ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ss", $fecha_inicio, $fecha_termino);
+    $stmt->bind_param("ss", $fecha_termino, $fecha_inicio);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -190,9 +78,9 @@ if ($formato == '1') {
     }
     $stmt->close();
 } elseif ($formato == '2') {
-    $sql = "SELECT * FROM data2 WHERE fecha_entrada BETWEEN ? AND ?";
+    $sql = "SELECT * FROM data2 WHERE fecha_entrada <= ? AND (fecha_salida IS NULL OR fecha_salida >= ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ss", $fecha_inicio, $fecha_termino);
+    $stmt->bind_param("ss", $fecha_termino, $fecha_inicio);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {

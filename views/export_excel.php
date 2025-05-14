@@ -1,5 +1,6 @@
 <?php
 require '../vendor/autoload.php';
+require '../includes/functions.php'; // Include the shared functions file
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -55,105 +56,12 @@ function getEventColors($conn) {
 // Obtener colores de eventos
 $eventColors = getEventColors($conn);
 
-// Función para generar la matriz de asistencia
-function generateAttendanceMatrix($datos, $events, $fecha_inicio, $fecha_termino, $eventColors) {
-    $attendance = [];
-    $dates = [];
-    $months = [];
-    $unlinkedEvents = [];
-
-    // Generar todas las fechas en el rango
-    $currentDate = $fecha_inicio;
-    while ($currentDate <= $fecha_termino) {
-        $dates[$currentDate] = true;
-        $months[getMonthName($currentDate)][] = $currentDate;
-        $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
-    }
-
-    foreach ($datos as $fila) {
-        $employee = $fila['nombre']; // Nombre Concatenado
-        $rut = $fila['identificador']; // Documento Identificador
-        $program = $fila['contrato']; // Contrato
-        $entryDate = formatExcelDate($fila['fecha_entrada']); // Fecha Entrada
-        $exitDate = isset($fila['fecha_salida']) ? formatExcelDate($fila['fecha_salida']) : null; // Fecha Salida
-        $entryDateOnly = getDateOnly($entryDate);
-        $exitDateOnly = $exitDate ? getDateOnly($exitDate) : null;
-
-        if (!isset($attendance[$employee])) {
-            $attendance[$employee] = [
-                'rut' => $rut,
-                'program' => $program,
-                'days' => [],
-                'countX' => 0
-            ];
-        }
-
-        if ($entryDateOnly) {
-            $currentDate = $entryDateOnly;
-            while ($currentDate <= $exitDateOnly || ($exitDateOnly === null && $currentDate === $entryDateOnly)) {
-                if (isset($dates[$currentDate])) {
-                    $attendance[$employee]['days'][$currentDate] = [
-                        'entry' => $currentDate === $entryDateOnly ? $entryDate : null,
-                        'exit' => $currentDate === $exitDateOnly ? $exitDate : null,
-                        'noExit' => $exitDate === null,
-                        'event' => null,
-                        'eventColor' => ''
-                    ];
-                    $attendance[$employee]['countX']++;
-                }
-                $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
-            }
-        }
-    }
-
-    foreach ($events as $event) {
-        $employee = $event['nombre'];
-        $date = getDateOnly($event['fecha']); // Obtener solo la fecha sin la hora
-        $eventType = $event['event_type'];
-
-        if (isset($attendance[$employee]) && isset($attendance[$employee]['days'][$date])) {
-            $attendance[$employee]['days'][$date]['event'] = $eventType;
-            $attendance[$employee]['days'][$date]['eventColor'] = getEventColor($eventType, $eventColors);
-        } else {
-            $unlinkedEvents[] = $event;
-        }
-    }
-
-    ksort($dates);
-    ksort($attendance); // Ordenar por nombre del funcionario
-    return [$attendance, array_keys($dates), $months, $unlinkedEvents];
-}
-
-// Función para formatear fechas de Excel
-function formatExcelDate($excelDate) {
-    if (is_numeric($excelDate)) {
-        $unixDate = ($excelDate - 25569) * 86400;
-        return gmdate("Y-m-d H:i:s", (int)$unixDate);
-    }
-    return $excelDate;
-}
-
-// Función para obtener solo la fecha de una fecha completa
-function getDateOnly($dateTime) {
-    return explode(' ', $dateTime)[0];
-}
-
-// Función para obtener el nombre del mes
-function getMonthName($date) {
-    return date('F', strtotime($date));
-}
-
-// Función para obtener el color asociado a un tipo de evento
-function getEventColor($event_type, $eventColors) {
-    return $eventColors[$event_type] ?? "#FFFFFF";
-}
-
 // Obtener datos según el formato
 $datos = [];
 if ($formato == '1') {
-    $sql = "SELECT * FROM data1 WHERE fecha_entrada BETWEEN ? AND ?";
+    $sql = "SELECT * FROM data1 WHERE fecha_entrada <= ? AND (fecha_salida IS NULL OR fecha_salida >= ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ss", $fecha_inicio, $fecha_termino);
+    $stmt->bind_param("ss", $fecha_termino, $fecha_inicio);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -161,9 +69,9 @@ if ($formato == '1') {
     }
     $stmt->close();
 } elseif ($formato == '2') {
-    $sql = "SELECT * FROM data2 WHERE fecha_entrada BETWEEN ? AND ?";
+    $sql = "SELECT * FROM data2 WHERE fecha_entrada <= ? AND (fecha_salida IS NULL OR fecha_salida >= ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ss", $fecha_inicio, $fecha_termino);
+    $stmt->bind_param("ss", $fecha_termino, $fecha_inicio);
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -201,7 +109,8 @@ foreach ($dates as $date) {
 
 // Fill data
 $row = 3;
-foreach ($attendance as $employee => $info) {
+foreach ($attendance as $key => $info) {
+    list($employee, $program) = explode('|', $key); // Use the same key structure as visualizar.php
     $sheet->setCellValue('A' . $row, $employee);
     $sheet->setCellValue('B' . $row, $info['rut']);
     $sheet->setCellValue('C' . $row, $info['program']);
