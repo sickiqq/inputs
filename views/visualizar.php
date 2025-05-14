@@ -299,9 +299,9 @@ $conn->close();
                         <table class="table table-bordered table-hover">
                             <thead class="table-primary">
                                 <tr>
-                                    <th rowspan="2" class="sticky-col sticky-funcionario">Funcionario</th>
+                                    <th rowspan="2" class="sticky-col sticky-funcionario">Proyecto</th>
                                     <th rowspan="2" class="sticky-col sticky-rut">RUT</th>
-                                    <th rowspan="2" class="sticky-col sticky-proyecto">Proyecto</th>
+                                    <th rowspan="2" class="sticky-col sticky-proyecto">Funcionario</th>
                                     <?php foreach ($months as $month => $monthDates): ?>
                                         <th colspan="<?php echo count($monthDates); ?>"><?php echo escape($month); ?></th>
                                     <?php endforeach; ?>
@@ -320,9 +320,9 @@ $conn->close();
                                     list($employee, $program) = explode('|', $key);
                                 ?>
                                     <tr>
-                                        <td class="sticky-col sticky-funcionario"><?php echo escape($employee); ?></td>
+                                        <td class="sticky-col sticky-funcionario"><?php echo escape($info['program']); ?></td>
                                         <td class="sticky-col sticky-rut"><?php echo escape($info['rut']); ?></td>
-                                        <td class="sticky-col sticky-proyecto"><?php echo escape($info['program']); ?></td>
+                                        <td class="sticky-col sticky-proyecto"><?php echo escape($employee); ?></td>
                                         <?php foreach ($dates as $date): ?>
                                             <?php
                                                 $eventColor = isset($info['days'][$date]['event']) ? getEventColor($info['days'][$date]['event'], $eventColors) : '';

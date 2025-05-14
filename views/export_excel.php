@@ -110,10 +110,10 @@ foreach ($dates as $date) {
 // Fill data
 $row = 3;
 foreach ($attendance as $key => $info) {
-    list($employee, $program) = explode('|', $key); // Use the same key structure as visualizar.php
-    $sheet->setCellValue('A' . $row, $employee);
+    list($employee, $program) = explode('|', $key); // Use the same key structure
+    $sheet->setCellValue('A' . $row, $info['program']); // Swap with program
     $sheet->setCellValue('B' . $row, $info['rut']);
-    $sheet->setCellValue('C' . $row, $info['program']);
+    $sheet->setCellValue('C' . $row, $employee); // Swap with employee
 
     $col = 'D';
     foreach ($dates as $date) {
