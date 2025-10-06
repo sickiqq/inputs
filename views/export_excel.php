@@ -8,7 +8,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 // Conectar a la base de datos
 $servername = "localhost";
 $username = "root";
-$password = "";
+$password = "root";
 $dbname = "inputs_db";
 
 $conn = new mysqli($servername, $username, $password, $dbname);

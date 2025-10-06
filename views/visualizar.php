@@ -9,7 +9,7 @@ require '../includes/functions.php'; // Include the shared functions file
 // Conectar a la base de datos
 $servername = "localhost";
 $username = "root";
-$password = "";
+$password = "root";
 $dbname = "inputs_db";
 
 $conn = new mysqli($servername, $username, $password, $dbname);
